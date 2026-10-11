@@ -423,6 +423,11 @@ test("BRAIN MVP persists a four-card preparation choice through real combat, res
   const nextCombat = window.CariCombat.getGameState().combat;
   assert.equal(nextCombat.outcome, window.GameState.OUTCOME.IN_PROGRESS);
   assert.equal(nextCombat.deckVersion, "player-selected-deck-v2");
+  const progressedCard = window.CombatEngine.cardDefinitionFor(nextCombat, "disparo_neon");
+  assert.equal(
+    progressedCard.damage,
+    window.CardSystem.definitionFor("disparo_neon").damage + 5
+  );
   const nextDeployedCards = [
     ...nextCombat.cards.hand,
     ...nextCombat.cards.drawPile,
