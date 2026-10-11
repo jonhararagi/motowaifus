@@ -88,7 +88,7 @@ test("Phase 25 keeps motorcycle and character slots explicit", async () => {
   presentation.setCameraPreset("ATTACK", true);
   const camera = presentation.getCameraState();
   assert.equal(camera.active, "ATTACK");
-  assert.equal(camera.current.zoom, api.CAMERA_PRESETS.ATTACK.zoom);
+  assert.equal(camera.zoom, api.CAMERA_PRESETS.ATTACK.zoom);
 });
 
 test("Phase 25 asset catalog mapping only accepts explicitly approved assets", async () => {

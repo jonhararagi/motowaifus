@@ -1084,13 +1084,15 @@ test("Phase 29-W presentation consumes BREAK over IMPACT and records BURST_FINIS
     outcome: "IN_PROGRESS",
     player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
     enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 0, max: 100 } },
-    events: [
-      { type: "ATTACK_START", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive" },
-      { type: "DAMAGE_APPLIED", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive", damage: 12, breakDamage: 12 },
-      { type: "BREAK_TRIGGER", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive", damage: 12, breakDamage: 12 }
-    ]
+    events: []
   };
   presentation.onCombatStart(combat);
+  presentation.render(combat, 900);
+  combat.events.push(
+    { type: "ATTACK_START", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive" },
+    { type: "DAMAGE_APPLIED", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive", damage: 12, breakDamage: 12 },
+    { type: "BREAK_TRIGGER", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive", damage: 12, breakDamage: 12 }
+  );
   setNow(1000);
   presentation.consumeCombatEvents(combat);
   presentation.render(combat, 1000);
@@ -1102,13 +1104,15 @@ test("Phase 29-W presentation consumes BREAK over IMPACT and records BURST_FINIS
     outcome: "IN_PROGRESS",
     player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
     enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 0, max: 100 } },
-    events: [
-      { type: "BURST_START", actionId: "burst-1", actionType: "BURST", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri" },
-      { type: "DAMAGE_APPLIED", actionId: "burst-1", actionType: "BURST", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", damage: 24, breakDamage: 0 }
-    ]
+    events: []
   };
   const second = await loadPresentation();
   second.presentation.onCombatStart(burst);
+  second.presentation.render(burst, 0);
+  burst.events.push(
+    { type: "BURST_START", actionId: "burst-1", actionType: "BURST", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri" },
+    { type: "DAMAGE_APPLIED", actionId: "burst-1", actionType: "BURST", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", damage: 24, breakDamage: 0 }
+  );
   second.presentation.consumeCombatEvents(burst);
   assert.equal(second.presentation.getShotState(0).name, "BURST");
   second.setNow(2200);
