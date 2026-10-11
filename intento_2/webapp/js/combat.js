@@ -43,6 +43,16 @@
   const cinematicSliceButton = document.getElementById("cinematic-slice");
   const combatTimerEl = document.getElementById("combat-timer");
   const combatSceneStateEl = document.getElementById("combat-scene-state");
+  const preparationPanel = document.getElementById("preparation-panel");
+  const deckSelectionEl = document.getElementById("deck-selection");
+  const deckSelectionCountEl = document.getElementById("deck-selection-count");
+  const deckSelectionStatusEl = document.getElementById("deck-selection-status");
+  const saveDeckButton = document.getElementById("save-deck-selection");
+  const onboardingPanel = document.getElementById("onboarding-panel");
+  const onboardingStepEl = document.getElementById("onboarding-step");
+  const onboardingTitleEl = document.getElementById("onboarding-title");
+  const onboardingBodyEl = document.getElementById("onboarding-body");
+  const onboardingNextButton = document.getElementById("onboarding-next");
 
   const presentation = window.CombatPresentation?.create?.(canvas, context) || null;
   let battleSequence = 0;
@@ -53,6 +63,10 @@
   let cinematicToken = 0;
   let cinematicRunning = false;
   let playerActionLock = null;
+  let cachedPlayerSave = null;
+  let selectedDeckCardIds = [];
+  let initializedDeckSelection = false;
+  const PLAYER_DECK_SIZE = 4;
   const view = {
     gameState: null,
     lastWidth: 0,
@@ -110,7 +124,311 @@
     return syncPlayerActionLock(now);
   }
 
-  function formatCombatTimer(elapsedMs) {
+  function requestedCharacterIdForRuntime() {
+    const search = String(window.location?.search || "");
+    if (/(?:^|[?&])phase29=impulso(?:&|$)/.test(search)) return "yuri";
+    if (/(?:^|[?&])phase21=support(?:&|$)/.test(search)) return "test_support";
+    return "yuri";
+  }
+
+  function loadPlayerSave() {
+    if (!cachedPlayerSave) {
+      cachedPlayerSave = window.SaveManager?.load?.()?.save || null;
+    }
+    return cachedPlayerSave;
+  }
+
+  function updatePlayerSave(mutator) {
+    const manager = window.SaveManager;
+    if (typeof manager?.load !== "function" || typeof manager?.save !== "function") return null;
+    const loaded = manager.load();
+    if (!loaded?.save) return null;
+    const next = loaded.save;
+    mutator(next);
+    const result = manager.save(next);
+    if (!result.success) {
+      if (view.gameState?.session) view.gameState.session.lastMessage = "No se pudo guardar · " + result.error;
+      return null;
+    }
+    cachedPlayerSave = result.save;
+    return cachedPlayerSave;
+  }
+
+  function deckCardAllowed(cardId, characterId = requestedCharacterIdForRuntime()) {
+    const definition = window.CardSystem?.definitionFor?.(cardId);
+    if (!definition || definition.characterId === "test_support" && characterId !== "test_support") return false;
+    return definition.characterId == null || definition.characterId === characterId;
+  }
+
+  function isValidDeckCardIds(cardIds, characterId = requestedCharacterIdForRuntime()) {
+    return Array.isArray(cardIds) &&
+      cardIds.length === PLAYER_DECK_SIZE &&
+      new Set(cardIds).size === cardIds.length &&
+      cardIds.every((cardId) => typeof cardId === "string" && deckCardAllowed(cardId, characterId));
+  }
+
+  function defaultDeckCardIds(characterId = requestedCharacterIdForRuntime()) {
+    const character = window.CharacterKitSystem?.definitionFor?.(characterId);
+    const ids = character?.cardIds || window.CharacterKitSystem?.cardIdsFor?.(characterId) || [];
+    return isValidDeckCardIds(ids, characterId) ? [...ids] : [];
+  }
+
+  function savedDeckCardIds(characterId = requestedCharacterIdForRuntime()) {
+    const ids = loadPlayerSave()?.loadout?.deckCardIds;
+    return isValidDeckCardIds(ids, characterId) ? [...ids] : null;
+  }
+
+  function selectedDeckMatchesSaved() {
+    const saved = savedDeckCardIds();
+    return Boolean(saved && saved.length === selectedDeckCardIds.length &&
+      saved.every((cardId, index) => cardId === selectedDeckCardIds[index]));
+  }
+
+  function updateDeckSelectionStatus() {
+    if (deckSelectionCountEl) {
+      deckSelectionCountEl.textContent = selectedDeckCardIds.length + " / " + PLAYER_DECK_SIZE + " cartas seleccionadas";
+    }
+    if (saveDeckButton) saveDeckButton.disabled = !isValidDeckCardIds(selectedDeckCardIds);
+    if (deckSelectionStatusEl) {
+      deckSelectionStatusEl.textContent = selectedDeckMatchesSaved()
+        ? "Mazo guardado. Este conjunto será el mazo de tu siguiente combate."
+        : "Selección pendiente de guardar. El combate no comenzará hasta guardar 4 cartas.";
+    }
+    syncTutorialPanels(view.gameState?.combat || null);
+  }
+
+  function renderDeckSelection() {
+    if (!deckSelectionEl || !window.CardSystem?.CARD_DEFINITIONS) return;
+    deckSelectionEl.replaceChildren();
+    const characterId = requestedCharacterIdForRuntime();
+    const definitions = Object.values(window.CardSystem.CARD_DEFINITIONS)
+      .filter((definition) => definition.characterId == null || definition.characterId === characterId);
+    for (const definition of definitions) {
+      const cardId = String(definition.cardId || definition.id);
+      const label = document.createElement("label");
+      label.className = "deck-option";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.value = cardId;
+      checkbox.checked = selectedDeckCardIds.includes(cardId);
+      checkbox.disabled = !checkbox.checked && selectedDeckCardIds.length >= PLAYER_DECK_SIZE;
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          if (selectedDeckCardIds.length < PLAYER_DECK_SIZE) selectedDeckCardIds.push(cardId);
+        } else {
+          selectedDeckCardIds = selectedDeckCardIds.filter((id) => id !== cardId);
+        }
+        renderDeckSelection();
+        updateDeckSelectionStatus();
+      });
+      const copy = document.createElement("span");
+      copy.className = "deck-option-copy";
+      const name = document.createElement("strong");
+      name.textContent = definition.name;
+      const detail = document.createElement("small");
+      detail.textContent = String(definition.type) + " · " + Number(definition.cost || 0) + " Energy · " + String(definition.description || "");
+      copy.appendChild(name);
+      copy.appendChild(detail);
+      label.appendChild(checkbox);
+      label.appendChild(copy);
+      deckSelectionEl.appendChild(label);
+    }
+    updateDeckSelectionStatus();
+  }
+
+  function initializeDeckSelection() {
+    if (initializedDeckSelection) return;
+    initializedDeckSelection = true;
+    const saved = savedDeckCardIds();
+    selectedDeckCardIds = saved || defaultDeckCardIds();
+    renderDeckSelection();
+    saveDeckButton?.addEventListener("click", () => {
+      if (!isValidDeckCardIds(selectedDeckCardIds)) {
+        if (deckSelectionStatusEl) deckSelectionStatusEl.textContent = "Seleccioná exactamente 4 cartas diferentes.";
+        return;
+      }
+      const result = updatePlayerSave((save) => {
+        save.loadout = save.loadout || { deckCardIds: null };
+        save.loadout.deckCardIds = [...selectedDeckCardIds];
+      });
+      if (result && view.gameState?.session) view.gameState.session.lastMessage = "Mazo de 4 cartas guardado.";
+      updateDeckSelectionStatus();
+      renderUi();
+    });
+  }
+
+  function persistOnboarding(patch) {
+    return updatePlayerSave((save) => {
+      const previous = save.onboarding || {
+        step: 0,
+        completed: false,
+        firstBattleId: null,
+        firstActionBattleId: null,
+        firstResultBattleId: null
+      };
+      save.onboarding = { ...previous, ...patch };
+    })?.onboarding || null;
+  }
+
+  function onboardingState() {
+    return loadPlayerSave()?.onboarding || {
+      step: 0,
+      completed: false,
+      firstBattleId: null,
+      firstActionBattleId: null,
+      firstResultBattleId: null
+    };
+  }
+
+  function beginTutorialBattle() {
+    if (!savedDeckCardIds()) {
+      if (deckSelectionStatusEl) deckSelectionStatusEl.textContent = "Primero guardá un mazo válido de 4 cartas.";
+      return false;
+    }
+    startBattle();
+    const combat = view.gameState?.combat;
+    if (!combat) return false;
+    persistOnboarding({
+      step: 3,
+      completed: false,
+      firstBattleId: combat.battleId,
+      firstActionBattleId: null,
+      firstResultBattleId: null
+    });
+    renderUi();
+    return true;
+  }
+
+  function advanceOnboarding() {
+    const onboarding = onboardingState();
+    if (onboarding.completed) return;
+    if (onboarding.step === 0) {
+      persistOnboarding({ step: 1 });
+    } else if (onboarding.step === 1) {
+      if (!selectedDeckMatchesSaved()) {
+        if (deckSelectionStatusEl) deckSelectionStatusEl.textContent = "Guardá las 4 cartas seleccionadas antes de continuar.";
+        return;
+      }
+      persistOnboarding({ step: 2 });
+    } else if (onboarding.step === 2) {
+      beginTutorialBattle();
+      return;
+    } else if (onboarding.step === 3) {
+      if (onboarding.firstBattleId && onboarding.firstActionBattleId === onboarding.firstBattleId) {
+        persistOnboarding({ step: 4 });
+      }
+    } else if (onboarding.step === 4) {
+      if (onboarding.firstBattleId && onboarding.firstResultBattleId === onboarding.firstBattleId) {
+        persistOnboarding({ step: 5 });
+      }
+    } else if (onboarding.step === 5) {
+      persistOnboarding({ step: 6, completed: true });
+    }
+    renderUi();
+  }
+
+  function recordTutorialPlayerAction(combat, resolution) {
+    if (!combat || !resolution?.actionId) return;
+    const onboarding = onboardingState();
+    if (!onboarding.completed && onboarding.step === 3 && onboarding.firstBattleId === combat.battleId) {
+      persistOnboarding({ step: 4, firstActionBattleId: combat.battleId });
+    }
+  }
+
+  function recoverTutorialAfterReload() {
+    const onboarding = onboardingState();
+    if (onboarding.completed || ![3, 4].includes(onboarding.step)) return;
+    const lastBattle = loadPlayerSave()?.lastBattle;
+    if (lastBattle && lastBattle.battleId === onboarding.firstBattleId &&
+        ["VICTORY", "DEFEAT"].includes(lastBattle.outcome)) {
+      persistOnboarding({ step: 5, firstResultBattleId: lastBattle.battleId });
+      return;
+    }
+    persistOnboarding({
+      step: 2,
+      firstBattleId: null,
+      firstActionBattleId: null,
+      firstResultBattleId: null
+    });
+  }
+
+  function syncTutorialPanels(combat) {
+    if (preparationPanel) preparationPanel.hidden = Boolean(combat && combat.outcome === window.GameState?.OUTCOME?.IN_PROGRESS);
+    const onboarding = onboardingState();
+    if (!onboardingPanel) return;
+
+    if (!onboarding.completed && combat && onboarding.firstBattleId === combat.battleId &&
+        onboarding.step >= 3 && onboarding.step <= 4 &&
+        [window.GameState?.OUTCOME?.VICTORY, window.GameState?.OUTCOME?.DEFEAT].includes(combat.outcome) &&
+        onboarding.firstResultBattleId !== combat.battleId) {
+      persistOnboarding({ step: 5, firstResultBattleId: combat.battleId });
+    }
+
+    const current = onboardingState();
+    onboardingPanel.hidden = Boolean(current.completed);
+    if (onboardingPanel.hidden) return;
+    const step = Number(current.step) || 0;
+    const outcome = combat?.battleId === current.firstBattleId ? combat?.outcome : loadPlayerSave()?.lastBattle?.outcome;
+    const views = {
+      0: {
+        title: "Tu primera batalla",
+        body: "El objetivo es derrotar al enemigo antes de perder tus HP. El combate avanza en tiempo real: observá los estados y elegí cuándo intervenir.",
+        button: "Continuar a preparación"
+      },
+      1: {
+        title: "Prepará tu mazo",
+        body: "Elegí 4 cartas diferentes del catálogo actual y guardalas. La selección persistirá y cambiará las cartas reales que entran al combate.",
+        button: "Continuar"
+      },
+      2: {
+        title: "Entrá al combate",
+        body: "La Energy se regenera; cada carta tiene coste y cooldown. La intención enemiga anticipa su conducta. Iniciá tu primera batalla para seguir.",
+        button: "Comenzar primera batalla"
+      },
+      3: {
+        title: "Probá una acción válida",
+        body: "Elegí una carta con Energy suficiente y sin cooldown. El enemigo y el reloj siguen avanzando; una entrada inválida no debe consumir la carta.",
+        button: "Usá una carta para continuar"
+      },
+      4: {
+        title: "Leé la intención y BREAK",
+        body: "La intención del enemigo permite anticipar su ataque o defensa. Al vaciar BREAK se abre una ventana vulnerable que puede aprovecharse con BURST. SeguÍ jugando hasta una victoria o derrota real.",
+        button: "Continuar a resultados"
+      },
+      5: {
+        title: outcome === window.GameState?.OUTCOME?.VICTORY ? "Victoria y recompensa" : outcome === window.GameState?.OUTCOME?.DEFEAT ? "Derrota y reintento" : "Resultado de batalla",
+        body: outcome === window.GameState?.OUTCOME?.VICTORY
+          ? "La victoria habilita reclamar la recompensa una sola vez. Elegí una mejora persistente y después iniciá el siguiente combate."
+          : outcome === window.GameState?.OUTCOME?.DEFEAT
+            ? "La derrota se registra en el guardado; no hay recompensa de victoria. Podés reintentar con tu mazo persistido."
+            : "La primera batalla terminó. Revisá su resultado, reclamá la recompensa disponible y elegí cómo continuar.",
+        button: "Terminar tutorial"
+      }
+    };
+    const view = views[step] || views[0];
+    if (onboardingStepEl) onboardingStepEl.textContent = "TUTORIAL · " + Math.min(6, step + 1) + " / 6";
+    if (onboardingTitleEl) onboardingTitleEl.textContent = view.title;
+    if (onboardingBodyEl) onboardingBodyEl.textContent = view.body;
+    if (onboardingNextButton) {
+      onboardingNextButton.textContent = view.button;
+      const hasLiveFirstBattle = Boolean(combat && combat.battleId === current.firstBattleId &&
+        combat.outcome === window.GameState?.OUTCOME?.IN_PROGRESS);
+      onboardingNextButton.disabled =
+        (step === 1 && !selectedDeckMatchesSaved()) ||
+        (step === 2 && !savedDeckCardIds()) ||
+        (step === 3 && (!hasLiveFirstBattle || current.firstActionBattleId !== current.firstBattleId)) ||
+        (step === 4 && current.firstResultBattleId !== current.firstBattleId);
+    }
+    if (startButton) {
+      startButton.disabled = !savedDeckCardIds() || (!current.completed && current.step !== 2) || Boolean(combat);
+    }
+  }
+
+  function initializeOnboarding() {
+    onboardingNextButton?.addEventListener("click", advanceOnboarding);
+  }
+
+    function formatCombatTimer(elapsedMs) {
     const totalSeconds = Math.max(0, Math.floor(Number(elapsedMs || 0) / 1000));
     const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
     const seconds = (totalSeconds % 60).toString().padStart(2, "0");
@@ -137,16 +455,13 @@
       : "battle-phase19-" + Date.now() + "-" + battleSequence;
     const enemy = window.EnemyCatalog.createEnemy(id);
     currentEnemyId = enemy.id;
-    const search = String(window.location?.search || "");
-    const phase29ImpulsoValidation = /(?:^|[?&])phase29=impulso(?:&|$)/.test(search);
-    const requestedCharacterId = phase29ImpulsoValidation
-      ? "yuri"
-      : /(?:^|[?&])phase21=support(?:&|$)/.test(search)
-        ? "test_support"
-        : "yuri";
+    const requestedCharacterId = requestedCharacterIdForRuntime();
     const character = window.CharacterKitSystem?.definitionFor?.(requestedCharacterId) || null;
     const saved = typeof window.SaveManager?.load === "function"
       ? window.SaveManager.load().save
+      : null;
+    const savedDeck = isValidDeckCardIds(saved?.loadout?.deckCardIds, requestedCharacterId)
+      ? [...saved.loadout.deckCardIds]
       : null;
     return {
       battleId,
@@ -160,7 +475,8 @@
       enemy,
       characterId: character?.characterId || null,
       character,
-      cardIds: character?.cardIds ? [...character.cardIds] : null,
+      cardIds: savedDeck || (character?.cardIds ? [...character.cardIds] : null),
+      deckVersion: savedDeck ? "player-selected-deck-v2" : undefined,
       progression: saved?.progression || {}
     };
   }
@@ -484,6 +800,7 @@
     try {
       const action = window.GameActions.createPlayerSkillAction(view.gameState, cardInstanceId);
       const resolution = window.CombatEngine.resolveAction(view.gameState, action);
+      recordTutorialPlayerAction(combat, resolution);
       recordCardUsage(combat, action.cardId);
       view.lastTelemetryActionId = resolution.actionId;
       window.RocketBunnyTelemetry?.recordCombatAction(combat, {
@@ -517,6 +834,7 @@
     try {
       const action = window.GameActions.createPlayerBurstAction(view.gameState);
       const resolution = window.CombatEngine.resolveAction(view.gameState, action);
+      recordTutorialPlayerAction(combat, resolution);
       view.lastTelemetryActionId = resolution.actionId;
       window.RocketBunnyTelemetry?.recordCombatAction(combat, {
         ...resolution,
@@ -546,6 +864,7 @@
     try {
       const action = window.GameActions.createPlayerAbilityAction(view.gameState);
       const resolution = window.CombatEngine.resolveAction(view.gameState, action);
+      recordTutorialPlayerAction(combat, resolution);
       view.lastTelemetryActionId = resolution.actionId;
       window.RocketBunnyTelemetry?.recordCombatAction(combat, {
         ...resolution,
@@ -807,7 +1126,7 @@
     if (statusEl) setText(statusEl, game?.session?.lastMessage || "Esperando una batalla.");
 
     setHidden(startButton, Boolean(combat));
-    setHidden(restartButton, !combat);
+    setHidden(restartButton, !combat || outcome === window.GameState.OUTCOME.IN_PROGRESS);
 
     if (breakBannerEl) {
       breakBannerEl.hidden = !broken;
@@ -836,6 +1155,7 @@
     }
 
     renderHand(combat);
+    syncTutorialPanels(combat);
   }
 
   function resizeCanvas() {
@@ -861,14 +1181,35 @@
     getPresentation: () => presentation
   });
 
-  startButton?.addEventListener("click", () => startBattle());
+  startButton?.addEventListener("click", () => {
+    const onboarding = onboardingState();
+    if (!savedDeckCardIds()) {
+      if (view.gameState?.session) view.gameState.session.lastMessage = "Guardá un mazo de 4 cartas antes de comenzar.";
+      renderUi();
+      preparationPanel?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+      return;
+    }
+    if (!onboarding.completed) {
+      if (onboarding.step === 2) beginTutorialBattle();
+      else {
+        if (view.gameState?.session) view.gameState.session.lastMessage = "Avanzá por el tutorial para comenzar la primera batalla.";
+        renderUi();
+      }
+      return;
+    }
+    startBattle();
+  });
   cinematicSliceButton?.addEventListener("click", () => { void playCinematicSlice(); });
   burstButton?.addEventListener("click", useBurst);
   abilityButton?.addEventListener("click", useAbility);
   restartButton?.addEventListener("click", restartBattle);
   window.addEventListener("resize", resizeCanvas, { passive: true });
 
+  initializeDeckSelection();
+  initializeOnboarding();
   initGameState();
+  recoverTutorialAfterReload();
+  renderUi();
 
   // TASK 29-O-B: VALIDATION ONLY. Never affects normal loads.
   if (/(?:^|[?&])phase29=impulso(?:&|$)/.test(String(window.location?.search || ""))) {

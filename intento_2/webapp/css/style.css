@@ -704,3 +704,66 @@ button:disabled { opacity: .38; cursor: not-allowed; }
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* BRAIN MVP: preparation, persistent deck selection and first-session tutorial. */
+.preparation-panel,
+.onboarding-panel {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(12,16,26,.88);
+}
+.preparation-panel[hidden],
+.onboarding-panel[hidden] { display: none; }
+.preparation-copy,
+.onboarding-copy,
+.deck-selection-status {
+  margin: 6px 0 12px;
+  color: var(--tg-hint-color);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.deck-selection {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.deck-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 11px;
+  background: rgba(255,255,255,.025);
+  cursor: pointer;
+}
+.deck-option:has(input:checked) {
+  border-color: rgba(110,232,211,.62);
+  background: rgba(110,232,211,.08);
+}
+.deck-option input { margin-top: 3px; accent-color: var(--accent-player); }
+.deck-option-copy { display: grid; gap: 4px; min-width: 0; }
+.deck-option-copy strong { font-size: 11px; line-height: 1.3; }
+.deck-option-copy small { color: var(--tg-hint-color); font-size: 10px; line-height: 1.4; }
+.deck-selection-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.deck-selection-footer strong { font-size: 12px; }
+.deck-selection-footer button,
+.onboarding-panel > button { flex: 0 0 auto; }
+.deck-selection-status { margin-bottom: 0; }
+.onboarding-panel { border-color: rgba(255,213,107,.22); }
+.onboarding-panel h2 { font-size: 18px; }
+@media (max-width: 720px) {
+  .deck-selection { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .deck-option { padding: 8px; }
+  .deck-selection-footer { align-items: stretch; flex-direction: column; }
+}

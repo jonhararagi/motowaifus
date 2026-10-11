@@ -94,6 +94,34 @@
         </div>
       </div>
 
+      <section id="preparation-panel" class="preparation-panel" aria-label="Preparación de mazo">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">BEFORE THE BATTLE</span>
+            <h2>PREPARACIÓN · MAZO</h2>
+          </div>
+          <span class="section-hint">Elegí 4 cartas distintas</span>
+        </div>
+        <p class="preparation-copy">Este MVP usa las cartas genéricas disponibles y el kit actual de Yuri. No hay todavía un sistema de desbloqueos: el mazo guardado determina qué cartas entran al combate.</p>
+        <div id="deck-selection" class="deck-selection" role="group" aria-label="Seleccionar cuatro cartas"></div>
+        <div class="deck-selection-footer">
+          <strong id="deck-selection-count">0 / 4 cartas seleccionadas</strong>
+          <button id="save-deck-selection" type="button">GUARDAR MAZO</button>
+        </div>
+        <p id="deck-selection-status" class="deck-selection-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section id="onboarding-panel" class="onboarding-panel" aria-label="Tutorial de primera sesión">
+        <div class="section-heading">
+          <div>
+            <span id="onboarding-step" class="eyebrow">TUTORIAL · 1 / 6</span>
+            <h2 id="onboarding-title">Tu primera batalla</h2>
+          </div>
+        </div>
+        <p id="onboarding-body" class="onboarding-copy">El objetivo es derrotar al enemigo. El combate avanza en tiempo real.</p>
+        <button id="onboarding-next" type="button">Continuar a preparación</button>
+      </section>
+
       <section class="resource-dock" aria-label="Recursos de combate">
         <div class="resource-card energy-resource">
           <div class="resource-heading">

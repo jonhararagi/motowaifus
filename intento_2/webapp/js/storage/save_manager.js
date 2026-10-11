@@ -2,10 +2,24 @@
   "use strict";
 
   const STORAGE_KEY = "bosozoku_player_save";
-  const CURRENT_SAVE_VERSION = 1;
+  const CURRENT_SAVE_VERSION = 2;
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
+  }
+
+  function createDefaultLoadout() {
+    return { deckCardIds: null };
+  }
+
+  function createDefaultOnboarding() {
+    return {
+      step: 0,
+      completed: false,
+      firstBattleId: null,
+      firstActionBattleId: null,
+      firstResultBattleId: null
+    };
   }
 
   function createDefaultSave(playerId = "local-player") {
@@ -20,6 +34,8 @@
         losses: 0
       },
       progression: {},
+      loadout: createDefaultLoadout(),
+      onboarding: createDefaultOnboarding(),
       lastBattle: null,
       completedBattles: [],
       rewardLedger: []
@@ -71,6 +87,33 @@
       errors.push("progression inválido.");
     }
 
+    const loadout = value.loadout;
+    if (!loadout || typeof loadout !== "object" || Array.isArray(loadout)) {
+      errors.push("loadout inválido.");
+    } else if (loadout.deckCardIds !== null && (
+      !Array.isArray(loadout.deckCardIds) ||
+      loadout.deckCardIds.length !== 4 ||
+      !loadout.deckCardIds.every((id) => typeof id === "string" && id.trim().length > 0) ||
+      new Set(loadout.deckCardIds).size !== loadout.deckCardIds.length
+    )) {
+      errors.push("loadout.deckCardIds inválido.");
+    }
+
+    const onboarding = value.onboarding;
+    if (!onboarding || typeof onboarding !== "object" || Array.isArray(onboarding)) {
+      errors.push("onboarding inválido.");
+    } else {
+      if (!Number.isInteger(onboarding.step) || onboarding.step < 0 || onboarding.step > 6) {
+        errors.push("onboarding.step inválido.");
+      }
+      if (typeof onboarding.completed !== "boolean") errors.push("onboarding.completed inválido.");
+      for (const key of ["firstBattleId", "firstActionBattleId", "firstResultBattleId"]) {
+        if (onboarding[key] !== null && (typeof onboarding[key] !== "string" || onboarding[key].trim() === "")) {
+          errors.push("onboarding." + key + " inválido.");
+        }
+      }
+    }
+
     if (value.lastBattle !== null && (typeof value.lastBattle !== "object" || Array.isArray(value.lastBattle))) {
       errors.push("lastBattle inválido.");
     }
@@ -94,6 +137,16 @@
 
     if (value.saveVersion === CURRENT_SAVE_VERSION) {
       return { migrated: false, save: value, reason: null };
+    }
+
+    if (value.saveVersion === 1) {
+      const migratedSave = {
+        ...clone(value),
+        saveVersion: CURRENT_SAVE_VERSION,
+        loadout: createDefaultLoadout(),
+        onboarding: createDefaultOnboarding()
+      };
+      return { migrated: true, save: migratedSave, reason: "migrated_v1_to_v2" };
     }
 
     return {
@@ -233,6 +286,8 @@
     if (!duplicateTerminalResult && outcome === "DEFEAT") next.player.losses += 1;
 
     next.progression = clone(current.progression);
+    next.loadout = clone(current.loadout || createDefaultLoadout());
+    next.onboarding = clone(current.onboarding || createDefaultOnboarding());
     next.completedBattles = [...current.completedBattles];
     next.rewardLedger = [...current.rewardLedger];
 

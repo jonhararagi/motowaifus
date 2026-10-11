@@ -192,9 +192,11 @@
       battleId,
       seed,
       rulesVersion: "phase18-semi-real-time-v1",
-      deckVersion: Array.isArray(config.cardIds) && config.cardIds.length
-        ? "phase21-character-kit-v1"
-        : "phase18-opening-role-v1",
+      deckVersion: String(config.deckVersion || (
+        Array.isArray(config.cardIds) && config.cardIds.length
+          ? "phase21-character-kit-v1"
+          : "phase18-opening-role-v1"
+      )),
       characterId: String(config.characterId || character?.characterId || "legacy"),
       character: character ? clone(character) : null,
       rng: window.CombatRNG.create(seed),

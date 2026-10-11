@@ -48,6 +48,57 @@ test("missing save returns defaults", async () => {
   assert.equal(result.save.saveVersion, manager.CURRENT_SAVE_VERSION);
 });
 
+test("schema v1 migrates to v2 without losing player or reward progress", async () => {
+  const { manager, storageData } = await loadSaveManager();
+  const legacy = manager.createDefaultSave("legacy-player");
+  legacy.saveVersion = 1;
+  delete legacy.loadout;
+  delete legacy.onboarding;
+  legacy.player.xp = 175;
+  legacy.player.currency = 45;
+  legacy.player.wins = 2;
+  legacy.progression = { cardDamageBonuses: { disparo_neon: 5 } };
+  legacy.completedBattles.push("legacy-battle");
+  legacy.rewardLedger.push({ rewardId: "reward-legacy-battle", battleId: "legacy-battle", xp: 100, currency: 50 });
+  storageData.set(manager.STORAGE_KEY, JSON.stringify(legacy));
+
+  const result = manager.load();
+  assert.equal(result.source, "localStorage");
+  assert.equal(result.reason, "migrated");
+  assert.equal(result.save.saveVersion, 2);
+  assert.equal(result.save.player.id, "legacy-player");
+  assert.equal(result.save.player.xp, 175);
+  assert.equal(result.save.player.currency, 45);
+  assert.deepEqual(Array.from(result.save.completedBattles), ["legacy-battle"]);
+  assert.equal(result.save.rewardLedger[0].rewardId, "reward-legacy-battle");
+  assert.equal(result.save.loadout.deckCardIds, null);
+  assert.equal(result.save.onboarding.step, 0);
+  assert.equal(result.save.onboarding.completed, false);
+});
+
+test("new loadout and onboarding state survive save, reload and terminal battle bookkeeping", async () => {
+  const { manager } = await loadSaveManager();
+  const save = manager.createDefaultSave("player-test");
+  save.loadout.deckCardIds = ["yuri_break_drive", "yuri_racha_neon", "escudo_dark", "pulso_debilitante"];
+  save.onboarding = {
+    step: 5,
+    completed: false,
+    firstBattleId: "battle-onboard",
+    firstActionBattleId: "battle-onboard",
+    firstResultBattleId: "battle-onboard"
+  };
+  assert.equal(manager.save(save).success, true);
+  const state = {
+    player: { id: "player-test" },
+    combat: { battleId: "battle-onboard", turn: 2, outcome: "VICTORY", player: { hp: 100 }, enemy: { hp: 0 } }
+  };
+  assert.equal(manager.saveFromGameState(state, "VICTORY").success, true);
+  const reloaded = manager.load().save;
+  assert.deepEqual(Array.from(reloaded.loadout.deckCardIds), save.loadout.deckCardIds);
+  assert.equal(reloaded.onboarding.firstBattleId, "battle-onboard");
+  assert.equal(reloaded.onboarding.firstResultBattleId, "battle-onboard");
+});
+
 test("save then load preserves player data", async () => {
   const { manager } = await loadSaveManager();
   const save = validSave(manager);

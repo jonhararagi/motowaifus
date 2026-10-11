@@ -94,6 +94,9 @@ const REAL_GAME_FILES = [
   "intento_2/webapp/js/game/actions.js",
   "intento_2/webapp/js/game/skill_resolver.js",
   "intento_2/webapp/js/game/rules.js",
+  "intento_2/webapp/js/game/rewards.js",
+  "intento_2/webapp/js/progression.js",
+  "intento_2/webapp/js/storage/save_manager.js",
   "intento_2/webapp/js/scene/mesh_deformation.js",
   "intento_2/webapp/js/scene/procedural_motion.js",
   "intento_2/webapp/js/scene/lighting.js",
@@ -167,6 +170,12 @@ function runFrame(presentation, setNow, combat, now) {
 async function createCombatEntrypointHarness(search = "?phase29=impulso") {
   let now = 0;
   const elements = new Map();
+  const storageData = new Map();
+  const localStorage = {
+    getItem(key) { return storageData.has(key) ? storageData.get(key) : null; },
+    setItem(key, value) { storageData.set(key, String(value)); },
+    removeItem(key) { storageData.delete(key); }
+  };
 
   function makeElement(id = "") {
     const listeners = new Map();
@@ -279,6 +288,7 @@ async function createCombatEntrypointHarness(search = "?phase29=impulso") {
   const window = {
     location: { search },
     document,
+    localStorage,
     devicePixelRatio: 1,
     MachGirlsPresentationEvents: {
       create: () => ({
@@ -326,6 +336,100 @@ async function createCombatEntrypointHarness(search = "?phase29=impulso") {
     setNow(value) { now = Number(value) || 0; }
   };
 }
+
+test("BRAIN MVP persists a four-card preparation choice through real combat, result, reward, progression and next battle", async () => {
+  const { window, document } = await createCombatEntrypointHarness("");
+  const deckSelection = document.getElementById("deck-selection");
+  const findDeckCheckbox = (cardId) => deckSelection.children
+    .map((label) => label.children[0])
+    .find((checkbox) => checkbox.value === cardId);
+
+  const removeDefault = findDeckCheckbox("yuri_impulso_mach");
+  assert.ok(removeDefault);
+  assert.equal(removeDefault.checked, true);
+  removeDefault.checked = false;
+  removeDefault.dispatch("change");
+
+  const addGeneric = findDeckCheckbox("disparo_neon");
+  assert.ok(addGeneric);
+  assert.equal(addGeneric.checked, false);
+  assert.equal(addGeneric.disabled, false);
+  addGeneric.checked = true;
+  addGeneric.dispatch("change");
+
+  document.getElementById("save-deck-selection").dispatch("click");
+  const persistedDeck = window.SaveManager.load().save.loadout.deckCardIds;
+  assert.equal(persistedDeck.length, 4);
+  assert.equal(new Set(persistedDeck).size, 4);
+  assert.ok(persistedDeck.includes("disparo_neon"));
+  assert.equal(persistedDeck.includes("yuri_impulso_mach"), false);
+
+  const tutorialNext = document.getElementById("onboarding-next");
+  tutorialNext.dispatch("click");
+  assert.equal(window.SaveManager.load().save.onboarding.step, 1);
+  tutorialNext.dispatch("click");
+  assert.equal(window.SaveManager.load().save.onboarding.step, 2);
+  tutorialNext.dispatch("click");
+
+  const firstState = window.CariCombat.getGameState();
+  const firstCombat = firstState.combat;
+  assert.ok(firstCombat);
+  assert.equal(firstCombat.deckVersion, "player-selected-deck-v2");
+  assert.equal(window.SaveManager.load().save.onboarding.firstBattleId, firstCombat.battleId);
+  const deployedCards = [
+    ...firstCombat.cards.hand,
+    ...firstCombat.cards.drawPile,
+    ...firstCombat.cards.discardPile
+  ].map((card) => card.cardId);
+  assert.deepEqual([...new Set(deployedCards)].sort(), [...persistedDeck].sort());
+  assert.ok(firstCombat.cards.hand.some((card) => card.cardId === "yuri_break_drive"));
+
+  firstCombat.enemy.hp = 1;
+  const breakDrive = firstCombat.cards.hand.find((card) => card.cardId === "yuri_break_drive");
+  const resolution = window.CariCombat.actionButton(breakDrive.instanceId);
+  assert.ok(resolution);
+  assert.equal(resolution.cardId, "yuri_break_drive");
+  assert.equal(resolution.outcome, window.GameState.OUTCOME.VICTORY);
+  assert.equal(firstState.combat.outcome, window.GameState.OUTCOME.VICTORY);
+  const tutorialAfterBattle = window.SaveManager.load().save.onboarding;
+  assert.equal(tutorialAfterBattle.firstActionBattleId, firstCombat.battleId);
+  assert.equal(tutorialAfterBattle.firstResultBattleId, firstCombat.battleId);
+  assert.equal(tutorialAfterBattle.step, 5);
+
+  const reward = window.RewardSystem.createReward({ battleId: firstCombat.battleId });
+  const beforeClaim = window.SaveManager.load().save;
+  const claimed = window.RewardSystem.claimReward(beforeClaim, reward, firstCombat);
+  assert.equal(claimed.success, true);
+  assert.equal(claimed.claimed, true);
+  const duplicateClaim = window.RewardSystem.claimReward(claimed.save, reward, firstCombat);
+  assert.equal(duplicateClaim.success, true);
+  assert.equal(duplicateClaim.claimed, false);
+  assert.equal(duplicateClaim.save.player.xp, claimed.save.player.xp);
+  assert.equal(duplicateClaim.save.player.currency, claimed.save.player.currency);
+
+  const prepared = window.ProgressionSystem.prepareAfterReward(claimed.save, reward);
+  assert.equal(prepared.progression.pendingDecision.battleId, firstCombat.battleId);
+  const choice = window.ProgressionSystem.applyChoice(prepared, "upgrade_disparo_neon");
+  assert.equal(choice.success, true);
+  assert.equal(choice.save.progression.cardDamageBonuses.disparo_neon, 5);
+  assert.equal(window.SaveManager.save(choice.save).success, true);
+
+  const persistedAfterReward = window.SaveManager.load().save;
+  assert.deepEqual(Array.from(persistedAfterReward.loadout.deckCardIds).sort(), [...persistedDeck].sort());
+  assert.equal(persistedAfterReward.rewardLedger.length, 1);
+  assert.equal(persistedAfterReward.progression.cardDamageBonuses.disparo_neon, 5);
+
+  window.CariCombat.nextBattle();
+  const nextCombat = window.CariCombat.getGameState().combat;
+  assert.equal(nextCombat.outcome, window.GameState.OUTCOME.IN_PROGRESS);
+  assert.equal(nextCombat.deckVersion, "player-selected-deck-v2");
+  const nextDeployedCards = [
+    ...nextCombat.cards.hand,
+    ...nextCombat.cards.drawPile,
+    ...nextCombat.cards.discardPile
+  ].map((card) => card.cardId);
+  assert.deepEqual([...new Set(nextDeployedCards)].sort(), [...persistedDeck].sort());
+});
 
 test("resolved attack produces ATTACK state, world movement, distinct contact recoil and recovery", async () => {
   const { presentation, setNow } = await loadPresentation();
@@ -809,7 +913,7 @@ test("phase29=impulso auto-starts real Yuri combat with Impulso Mach ready in th
   assert.equal(resolution.buffApplied.amount, 0.25);
   assert.equal(resolution.buffApplied.durationMs, 2200);
   assert.equal(combat.enemy.hp, combat.enemy.maxHp);
-  assert.equal(combat.enemy.breakState.current, 0);
+  assert.equal(combat.enemy.breakState.current, state.combat.enemy.breakState.max);
 
   const presentation = window.CariCombat.getPresentation();
   const style = presentation.getPresentationStyleState();
@@ -989,6 +1093,7 @@ test("Phase 29-W presentation consumes BREAK over IMPACT and records BURST_FINIS
   presentation.onCombatStart(combat);
   setNow(1000);
   presentation.consumeCombatEvents(combat);
+  presentation.render(combat, 1000);
   assert.equal(presentation.getShotState(1000).name, "BREAK");
   assert.equal(actorFrom(presentation.getSceneFoundation(), "scene:ENEMY_PRIMARY").transform.state, "BREAK");
 
