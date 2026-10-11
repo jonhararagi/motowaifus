@@ -621,3 +621,37 @@ No new combat engine, card system, Energy system, AI, RNG, Save system, BREAK ru
 Executable gameplay smoke verification on the branch reached BREAK and then BURST with the existing `iron_guard` enemy using real `yuri_break_drive` actions; the smoke route observed enemy HP remaining above zero and player HP remaining positive.
 
 Live browser visual verification is tracked independently and must not be inferred from these executable checks.
+
+
+## BRAIN MVP closeout — 2026-10-11
+
+**STATUS: AUTOMATED GAMEPLAY MVP SLICE VERIFIED; BROWSER QA NOT VERIFIED.**
+
+The `mach-girls-2.5d` branch now has a bounded, executable first-session path. The tested code candidate is:
+
+```text
+CODE CANDIDATE SHA: 536795bc51e70634187e263dda7c768e3d31a742
+AUTOMATED CI RUN: 38138152601
+JOB: 114466217188
+RESULT: SUCCESS
+SUITE: 254 tests / 254 pass / 0 fail
+```
+
+The code candidate was checked out by exact SHA in CI. Syntax checks covered `combat.js`, `game/state.js`, `storage/save_manager.js`, `combat_presentation.js`, and the focused harness files. The full repository suite and the focused first-session integration test both passed.
+
+### Implemented / verified in the bounded MVP
+
+- A first-session onboarding state is persisted in the player save; its steps are gated by a saved preparation choice, a real accepted player action, and a real combat result.
+- Preparation permits saving exactly four distinct eligible cards from the current catalog/character identity. The selected deck is written to `bosozoku_player_save` and fed into the existing GameState battle configuration rather than replacing CardSystem or CombatEngine.
+- The existing semi-real-time combat, automatic enemy behavior, Energy, cooldowns, BREAK, BURST, seeded resolution, and current presentation path remain the authorities.
+- Victory/reward uses the existing RewardSystem; repeated claim is idempotent. The existing progression decision can add +5 base damage to Disparo Neón or Embestida Nitro.
+- The save schema is now version 2 with a tested version-1 migration that preserves player/reward/progression history and supplies default loadout/onboarding fields.
+- The integration test verifies selected deck contents in the real combat deck, a real Break Drive resolution, single reward claim, saved progression, the resulting +5 Disparo Neón damage definition in the next combat, and reuse of the selected deck in that next combat.
+
+### Explicit limitations / open decisions
+
+- **Browser live-session QA: NOT VERIFIED.** CI tests are not evidence of a human browser playthrough. The manual check remains: open the development build; select and save four cards; advance the onboarding; play a valid and an invalid action; observe enemy intent/automatic behavior, Energy/cooldown and BREAK/BURST; win and lose in separate runs; claim victory reward twice and confirm no duplicate; choose progression; reload and verify save; start the next combat or retry after defeat.
+- This is a bounded MVP path, not the complete RPG. Garage, story/routes, relationships, full collection/unlock progression, daily/weekly modes, broad campaign systems, and final approved character/motorcycle art are not claimed complete.
+- `YURI_EFFECTIVE_HAND_IS_INTENTIONAL` remains an **OPEN DESIGN QUESTION**: capacity 5 and Yuri kit size 4 are distinct facts. This phase does not change either.
+- Nitro/Redline remain out of the gameplay runtime and remain **OPEN DESIGN QUESTIONS**. No Maki Mach identity or narrative question is resolved here.
+- BONE-007 remains AMBER: synchronization of factual runtime documentation does not close unresolved design decisions. BONEs unrelated to this bounded slice remain at their prior states.

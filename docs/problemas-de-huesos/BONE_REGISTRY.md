@@ -13,7 +13,8 @@ No se implementó una cola de acciones.
 Evidencia de implementación: candidato funcional 35e9456ae7816d48b4f5b2d0dabe125e670e07e3; promoción funcional aplicada sobre mach-girls-2.5d.
 CANDIDATE VALIDATION: CI remoto RUN 37807078957 / JOB 113414062871; test "BONE-001 locks rapid player combat input during active presentation and reopens after recovery" = PASS.
 PROMOTED DEV HEAD VALIDATION: SHA 8ac72e8392fb6a045f5a12f6c7ad4270e527e7cd; Rocket Bunny Runtime Tests RUN 37822621222; BONE-001 = PASS.
-Conclusión: BONE-001 cerrado y verificado en el HEAD actual de mach-girls-2.5d.
+BRAIN MVP revalidation: exact code candidate `536795bc51e70634187e263dda7c768e3d31a742`, full-suite CI RUN 38138152601 / JOB 114466217188; the rapid-input LOCK/recovery regression remains in the 254-test passing suite.
+Conclusión: BONE-001 remains GREEN / VERIFIED; no queue or second clock was introduced.
 
 # BONE-002 — VISUAL LIFECYCLE / DISPOSE
 STATUS: AMBER
@@ -90,11 +91,11 @@ La mano efectiva de Yuri permanece documentada como CURRENT / VERIFIED / DERIVED
 Conclusión: los 2 true drifts identificados por la auditoría han sido reconciliados documentalmente. BONE-007 permanece AMBER porque la sincronización elimina el drift factual actual, pero no convierte automáticamente la cuestión de diseño de Yuri en una decisión cerrada.
 
 # BONE-008 — SAVE SCHEMA EVOLUTION
-STATUS: AMBER
-bosozoku_player_save usa CURRENT_SAVE_VERSION = 1 y el migrador actual no contiene una cadena real de migraciones futuras.
-Riesgo: Garage, deckbuilding, collection o relationships pueden romper saves existentes.
-Tratamiento: diseñar versionado y cadena de migraciones antes de ampliar el save.
-GREEN: migraciones y tests de compatibilidad documentados.
+STATUS: GREEN / VERIFIED
+El runtime actual utiliza `CURRENT_SAVE_VERSION = 2` para `bosozoku_player_save`. La migración v1→v2 añade `loadout` y `onboarding` por defecto y conserva player, progression, lastBattle, completedBattles y rewardLedger. Los tests cubren migración real de fixture v1, persistencia/reload de loadout y onboarding, save ausente y corrupción.
+VALIDATION: exact code candidate `536795bc51e70634187e263dda7c768e3d31a742`; CI RUN 38138152601 / JOB 114466217188; 254 tests PASS, 0 FAIL.
+Riesgo residual: cualquier futura ampliación del esquema debe introducir una migración incremental y conservar datos previos; la migración actual no implica soporte para versiones futuras desconocidas.
+Conclusión: el riesgo inmediato de expansión del save que afectaba al deck/onboarding MVP queda atendido. BONE-008 GREEN / VERIFIED.
 
 # BONE-009 — SINGLE TIME AUTHORITY
 STATUS: AMBER
@@ -126,7 +127,7 @@ BONE-004 GREEN / VERIFIED
 BONE-005 AMBER
 BONE-006 AMBER
 BONE-007 AMBER
-BONE-008 AMBER
+BONE-008 GREEN / VERIFIED
 BONE-009 AMBER
 BONE-010 AMBER
 BONE-011 AMBER
@@ -137,3 +138,9 @@ Cuando RED = 0, revisar de nuevo todos los AMBER y convertir cada riesgo crític
 
 # PRINCIPIO
 No queremos que el juego funcione solo porque los tests actuales pasan. Queremos contratos estructurales claros antes de hacerlo crecer.
+
+## BRAIN MVP validation note — 2026-10-11
+
+Current tested code SHA: `536795bc51e70634187e263dda7c768e3d31a742`. GitHub Actions exact-checkout run `38138152601` (job `114466217188`) passed syntax checks, focused first-session integration and the full suite (254/254). The integration test covers real preparation/deck selection, tutorial gates, an actual combat resolution, idempotent reward, persistent progression, the +5 combat definition in the next battle, and reuse of the selected deck.
+
+Browser playthrough remains **NOT VERIFIED**. BONE-007 remains AMBER because unresolved design questions are not closed by automated test success. BONE-003, BONE-005, BONE-006, BONE-009, BONE-010 and BONE-011 retain their prior AMBER status; unrelated bone states were not changed.

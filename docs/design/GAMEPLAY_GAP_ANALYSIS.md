@@ -1,4 +1,15 @@
-# Rocket Bunny Petty — Gameplay Gap Analysis
+# Mach-Girls — Gameplay Gap Analysis (including Rocket Bunny Petty historical context)
+
+## Current Mach-Girls MVP status — 2026-10-11
+
+**AUTOMATED FLOW: VERIFIED; BROWSER PLAYTHROUGH: NOT VERIFIED.**
+
+The current `mach-girls-2.5d` branch implements and remotely validates a bounded first-session flow: persistent four-card preparation → tutorial gates → existing real-time combat → real outcome → idempotent reward → persisted progression choice → next battle/retry state. Exact tested runtime candidate: `536795bc51e70634187e263dda7c768e3d31a742`; CI run `38138152601` / job `114466217188` reports 254 tests passing and 0 failing.
+
+This is an automated integration result, not Browser QA. Browser live interaction remains **NOT VERIFIED** pending a human-operated session against the development build. The remaining full product gaps below (story, routes, collection, garage, relationship systems, etc.) remain gaps and are not implied to be complete by this bounded MVP.
+
+## Historical specification baseline
+The following Phase 16 assessment is retained as historical context; current rows below are superseded where noted by the Mach-Girls runtime closeout.
 
 ## Phase
 POST-PHASE 16 — CHARACTER ART, WARDROBE & GAMEPLAY COMPLETION SPECIFICATION
@@ -17,8 +28,8 @@ IMPLEMENTED/VERIFIED means directly evidenced in runtime code. DOCUMENTED_ONLY m
 |---|---|---|---|---|---|---|
 | Combat | IMPLEMENTED | combat.js, GameState, CombatEngine | YES | richer content and presentation | P0 | VERIFIED |
 | Energy | IMPLEMENTED | energy.js | YES | future Nitro interaction | P0 | VERIFIED |
-| Cards | IMPLEMENTED | cards.js, actions, rules | YES | persistent collection/deck editing | P0 | VERIFIED |
-| Deck/hand/discard | IMPLEMENTED as fixed combat deck | cards.js | YES | player deck construction/persistence | P0 | VERIFIED |
+| Cards | IMPLEMENTED / VERIFIED | CardSystem, GameActions, Rules and save-backed loadout integration | YES | full collection/unlock UI remains outside the bounded MVP | P0 | VERIFIED |
+| Deck/hand/discard | IMPLEMENTED / VERIFIED (bounded four-card selection) | SaveManager v2 loadout + combat.js battle configuration + real GameState combat deck | YES | full collection/deck inventory and human usability review remain outstanding | P0 | VERIFIED (automated integration) |
 | Nitro | not runtime-integrated | Mechanics Ledger + historical prototypes | NO | authorized gameplay specification | P1 | OPEN DESIGN QUESTION |
 | Redline | not runtime-integrated | Mechanics Ledger + historical prototypes | NO | authorized gameplay specification | P1 | OPEN DESIGN QUESTION |
 | Enemies | IMPLEMENTED | enemies.js | YES | more content and boss framework | P0 | VERIFIED |
@@ -27,7 +38,7 @@ IMPLEMENTED/VERIFIED means directly evidenced in runtime code. DOCUMENTED_ONLY m
 | Rewards | IMPLEMENTED | rewards.js + app.js | YES | broader reward choices/sinks | P0 | VERIFIED |
 | BTP | DOCUMENTED_ONLY | Product System Spec | NO | product decision and implementation | P2 | HYPOTHESIS |
 | Garage | DOCUMENTED_ONLY | design/product docs | NO | UI, build data, progression | P1 | PROPOSED |
-| Progression | PROTOTYPE | XP, level, currency, save, one persistent card-damage choice | YES | broader progression system | P0 | PROTOTYPE |
+| Progression | IMPLEMENTED / VERIFIED (bounded MVP) | existing RewardSystem, ProgressionSystem, SaveManager; next battle uses saved +5 card bonus | YES | broader progression choices/economy remain outside MVP | P0 | VERIFIED (automated integration) |
 | Collection | PARTIAL infrastructure | database schema; default arrays empty | NO meaningful collection UX | content and UI | P1 | PARTIAL |
 | Story | MISSING | no runtime story flow identified | NO | scene/event system | P1 | MISSING |
 | Relationships | DOCUMENTED_ONLY | design/player-behavior docs | NO | relationship state/events | P2 | PROPOSED |
@@ -36,10 +47,10 @@ IMPLEMENTED/VERIFIED means directly evidenced in runtime code. DOCUMENTED_ONLY m
 | Weekly content | MISSING | product proposal only | NO | seed rotation/result identity | P2 | PROPOSED |
 | Bosses | PARTIAL | Banchou Rookie is ELITE enemy; no boss controller | YES as enemy | phases/controller/rewards | P1 | PARTIAL |
 | Challenge modes | MISSING | product proposal only | NO | mode controller/modifiers | P2 | EXPLORATION |
-| Save/Load | IMPLEMENTED | save_manager.js/localStorage | YES indirectly | richer progression schema | P0 | VERIFIED |
-| Session flow | PARTIAL | start/restart/next battle/reward | YES | onboarding and explicit next goal | P0 | PARTIAL |
-| Tutorial | MISSING | no tutorial flow identified | NO | deterministic onboarding | P0 | MISSING |
-| Onboarding | PARTIAL | start screen/combat entry | YES | explanation + first goal | P0 | PARTIAL |
+| Save/Load | IMPLEMENTED / VERIFIED | SaveManager v2 + tested v1→v2 migration and persistence tests | YES indirectly | future schema changes still require migrations | P0 | VERIFIED |
+| Session flow | IMPLEMENTED / VERIFIED (bounded MVP) | real entrypoint integration test through result, reward, save and next battle | YES | browser playthrough NOT VERIFIED | P0 | VERIFIED (automation) |
+| Tutorial | IMPLEMENTED / VERIFIED (bounded six-step onboarding) | persisted step gates: saved deck, accepted action and actual battle result | YES | human clarity/usability review remains | P0 | VERIFIED (automation) |
+| Onboarding | IMPLEMENTED / VERIFIED (bounded MVP) | real UI state persisted in SaveManager v2 | YES | broader narrative tutorial/content remains outside scope | P0 | VERIFIED (automation) |
 | Telemetry | IMPLEMENTED instrumentation | telemetry.js | NO | analytics backend not present | P1 | VERIFIED |
 | Telegram | IMPLEMENTED initialization | index.html/app.js | YES in Telegram | production account/service integration | P1 | VERIFIED |
 | Character data | PARTIAL | enemy identity metadata; empty default waifus | INDIRECT | authored roster | P1 | PARTIAL |
@@ -63,7 +74,7 @@ Verified runtime content includes:
 - seeded deterministic RNG;
 - victory/defeat;
 - XP/currency rewards and level calculation;
-- localStorage save version 1;
+- localStorage save version 2 with safe version-1 migration;
 - canvas + DOM combat presentation;
 - Telegram WebApp initialization;
 - client telemetry instrumentation.
@@ -93,14 +104,14 @@ Required for a coherent minimum product slice:
 8. persistent save;
 9. telemetry for the funnel.
 
-The controlled prototype now implements items 5–9 for the bounded post-combat bridge; onboarding and broader preparation remain future gaps.
+The current branch closes the bounded onboarding, preparation, reward, progression and save/continue path under automated integration tests. Browser/manual usability remains NOT VERIFIED; the broader product remains incomplete.
 
 ## Backlog
 
 | ID | System | Task | Dependencies | Spec | Complexity | Validation | Target |
 |---|---|---|---|---|---|---|---|
-| GP-01 | Onboarding | first-session flow | UI/save/telemetry | YES | low | human playtest | controlled gameplay |
-| GP-02 | Deck | persistent deck choice | cards/save/data | YES architecture | medium | functional + playtest | controlled gameplay |
+| GP-01 | Onboarding | bounded persisted six-step first-session flow | UI/save/real combat events | IMPLEMENTED | low | human browser playtest NOT VERIFIED | MVP automation passed |
+| GP-02 | Deck | persistent selection of four existing catalog cards | cards/save/data | IMPLEMENTED (bounded MVP) | medium | human playtest + broader collection design pending | MVP automation passed |
 | GP-03 | Garage | build/loadout screen | save/character data | NO | medium | design gate | future spec |
 | GP-04 | Story | authored scene/event flow | character/save | NO | medium | narrative prototype | future spec |
 | GP-05 | Character | authored roster/relationships | Character Bible | schema YES | medium | content review | content phase |
