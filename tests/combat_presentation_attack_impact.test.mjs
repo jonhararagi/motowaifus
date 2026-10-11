@@ -1083,7 +1083,7 @@ test("Phase 29-W presentation consumes BREAK over IMPACT and records BURST_FINIS
     battleId: "phase29w-break",
     outcome: "IN_PROGRESS",
     player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
-    enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 0, max: 100 } },
+    enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 0, max: 100, state: "BROKEN", remainingMs: 2200 } },
     events: []
   };
   presentation.onCombatStart(combat);
