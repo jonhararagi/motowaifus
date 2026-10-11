@@ -265,6 +265,7 @@ async function createCombatEntrypointHarness(search = "?phase29=impulso") {
   canvas.getBoundingClientRect = () => ({ width: 1000, height: 600 });
 
   const document = {
+    addEventListener() {},
     getElementById(id) {
       if (!elements.has(id)) elements.set(id, id === "combat-canvas" ? canvas : makeElement(id));
       return elements.get(id);
@@ -315,6 +316,9 @@ async function createCombatEntrypointHarness(search = "?phase29=impulso") {
     const source = await readFile(file, "utf8");
     vm.runInContext(source, contextVm, { filename: file });
   }
+
+  const telemetrySource = await readFile("intento_2/webapp/js/telemetry.js", "utf8");
+  vm.runInContext(telemetrySource, contextVm, { filename: "intento_2/webapp/js/telemetry.js" });
 
   const combatSource = await readFile("intento_2/webapp/js/combat.js", "utf8");
   vm.runInContext(combatSource, contextVm, { filename: "intento_2/webapp/js/combat.js" });
