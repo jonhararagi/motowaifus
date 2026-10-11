@@ -1,0 +1,37 @@
+name: Validation BRAIN-001 MVP Exact
+
+on:
+  push:
+    branches: [validation/brain-001-mvp-0eec5b9f]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: 0eec5b9f2addce7f21fd93bb939033adb74cf9e2
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify exact HEAD
+        run: |
+          test "$(git rev-parse HEAD)" = "0eec5b9f2addce7f21fd93bb939033adb74cf9e2"
+          git rev-parse HEAD
+      - name: Syntax checks
+        run: |
+          node --check intento_2/webapp/js/combat.js
+          node --check intento_2/webapp/js/game/state.js
+          node --check intento_2/webapp/js/storage/save_manager.js
+          node --check intento_2/webapp/js/combat_presentation.js
+          node --check tests/combat_presentation_attack_impact.test.mjs
+          node --check tests/save_manager.test.mjs
+          node --check tests/phase19_presentation.test.mjs
+      - name: Full repository tests
+        run: node --test tests/*.test.mjs
