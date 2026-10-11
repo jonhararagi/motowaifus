@@ -1083,11 +1083,14 @@ test("Phase 29-W presentation consumes BREAK over IMPACT and records BURST_FINIS
     battleId: "phase29w-break",
     outcome: "IN_PROGRESS",
     player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
-    enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 0, max: 100, state: "BROKEN", remainingMs: 2200 } },
+    enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 100, max: 100, state: "READY", remainingMs: 0 } },
     events: []
   };
   presentation.onCombatStart(combat);
   presentation.render(combat, 900);
+  combat.enemy.breakState.current = 0;
+  combat.enemy.breakState.state = "BROKEN";
+  combat.enemy.breakState.remainingMs = 2200;
   combat.events.push(
     { type: "ATTACK_START", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive" },
     { type: "DAMAGE_APPLIED", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive", damage: 12, breakDamage: 12 },
@@ -1095,6 +1098,7 @@ test("Phase 29-W presentation consumes BREAK over IMPACT and records BURST_FINIS
   );
   setNow(1000);
   presentation.consumeCombatEvents(combat);
+  assert.equal(actorFrom(presentation.getSceneFoundation(), "scene:ENEMY_PRIMARY").transform.state, "BREAK");
   presentation.render(combat, 1000);
   assert.equal(presentation.getShotState(1000).name, "BREAK");
   assert.equal(actorFrom(presentation.getSceneFoundation(), "scene:ENEMY_PRIMARY").transform.state, "BREAK");
