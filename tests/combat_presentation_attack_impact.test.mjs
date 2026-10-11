@@ -51,7 +51,7 @@ async function loadPresentation() {
   const canvas = { getBoundingClientRect: () => ({ width: 1000, height: 600 }) };
 
   const window = {
-    BreakSystem: { isBroken: () => false },
+    BreakSystem: { isBroken: (state) => state?.state === "BROKEN" && Number(state?.remainingMs) > 0 },
     BurstSystem: { canUse: () => false, chargeOf: () => 0, maxChargeOf: () => 100 }
   };
 
