@@ -242,7 +242,7 @@ test("Phase 29 presentation routes action roles before motion and impact schedul
   assert.match(onAction, /const targetRole = targetTeam === "player" \? "PLAYER" : "ENEMY_PRIMARY";/);
   assert.match(onAction, /scheduleMotion\(\s*sourceRole,/);
   assert.match(onAction, /scheduleMotion\(\s*targetRole,/);
-  assert.match(onAction, /setShot\("ATTACK_APPROACH"\)/);
+  assert.match(onAction, /setShot\(characterAttackStyle\?\.cameraShot \|\| "ATTACK_APPROACH"\)/);
   assert.match(onAction, /setShot\("IMPACT"\)/);
 });
 

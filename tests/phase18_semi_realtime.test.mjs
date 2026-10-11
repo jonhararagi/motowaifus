@@ -272,7 +272,7 @@ test("targeting exposes a future-proof interface while remaining single-enemy MV
   assert.equal(w.CombatEngine.resolveTarget(state.combat, state.combat.player, shot, "missing"), null);
 });
 
-test("saveVersion 1 remains loadable after the combat pivot", async () => {
+test("saveVersion 1 migrates into the current save schema after the combat pivot", async () => {
   const storageData = new Map();
   const context = vm.createContext({
     window: { localStorage: {
@@ -283,13 +283,20 @@ test("saveVersion 1 remains loadable after the combat pivot", async () => {
     JSON, Number, String, Object, Array, Set, Date, Error, TypeError, Infinity, NaN
   });
   vm.runInContext(await readFile("intento_2/webapp/js/storage/save_manager.js", "utf8"), context);
-  const legacy = context.window.SaveManager.createDefaultSave("legacy-player");
+  const manager = context.window.SaveManager;
+  const legacy = manager.createDefaultSave("legacy-player");
+  legacy.saveVersion = 1;
+  delete legacy.loadout;
+  delete legacy.onboarding;
   legacy.player.xp = 100;
-  storageData.set(context.window.SaveManager.STORAGE_KEY, JSON.stringify(legacy));
-  const loaded = context.window.SaveManager.load();
+  storageData.set(manager.STORAGE_KEY, JSON.stringify(legacy));
+  const loaded = manager.load();
   assert.equal(loaded.source, "localStorage");
-  assert.equal(loaded.save.saveVersion, 1);
+  assert.equal(loaded.reason, "migrated");
+  assert.equal(loaded.save.saveVersion, manager.CURRENT_SAVE_VERSION);
   assert.equal(loaded.save.player.xp, 100);
+  assert.equal(loaded.save.loadout.deckCardIds, null);
+  assert.equal(loaded.save.onboarding.completed, false);
 });
 
 test("combat path has no Math.random dependency", async () => {

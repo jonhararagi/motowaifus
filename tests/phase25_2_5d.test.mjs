@@ -4,7 +4,6 @@ import { test } from "node:test";
 import vm from "node:vm";
 
 async function loadPresentation() {
-  const source = await readFile("intento_2/webapp/js/combat_presentation.js", "utf8");
   const context = vm.createContext({
     window: {},
     performance: { now: () => 1000 },
@@ -17,7 +16,23 @@ async function loadPresentation() {
     Set,
     JSON
   });
-  vm.runInContext(source, context, { filename: "combat_presentation.js" });
+  const dependencies = [
+    "intento_2/webapp/js/scene/world_space.js",
+    "intento_2/webapp/js/scene/camera.js",
+    "intento_2/webapp/js/scene/mesh_deformation.js",
+    "intento_2/webapp/js/scene/lighting.js",
+    "intento_2/webapp/js/scene/procedural_motion.js",
+    "intento_2/webapp/js/scene/actor.js",
+    "intento_2/webapp/js/scene/animation.js",
+    "intento_2/webapp/js/scene/scene.js",
+    "intento_2/webapp/js/scene/renderer.js",
+    "intento_2/webapp/js/scene/presentation_events.js",
+    "intento_2/webapp/js/combat_shot_director.js",
+    "intento_2/webapp/js/combat_presentation.js"
+  ];
+  for (const path of dependencies) {
+    vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
+  }
   return context.window.CombatPresentation;
 }
 

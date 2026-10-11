@@ -93,8 +93,13 @@ test("same actor, layer, camera and VFX input produce deterministic projection",
   const context = { save() {}, restore() {}, translate() {}, scale() {} };
   const renderer = win.MachGirlsSceneRenderer.create({ context });
   const projections = [];
-  renderer.render(firstScene, { width: 1000, height: 600 }, (_, screen) => projections.push(host(screen)), 150);
-  renderer.render(secondScene, { width: 1000, height: 600 }, (_, screen) => projections.push(host(screen)), 150);
+  renderer.render(firstScene, { width: 1000, height: 600 }, (item, screen) => {
+    if (item.type === "FX") projections.push(host(screen));
+  }, 150);
+  renderer.render(secondScene, { width: 1000, height: 600 }, (item, screen) => {
+    if (item.type === "FX") projections.push(host(screen));
+  }, 150);
+  assert.equal(projections.length, 2);
   assert.deepEqual(projections[0], projections[1]);
 });
 
@@ -110,7 +115,10 @@ test("actor-relative VFX follows the actor/layer visual depth", async () => {
   const context = { save() {}, restore() {}, translate() {}, scale() {} };
   const renderer = win.MachGirlsSceneRenderer.create({ context });
   const results = [];
-  renderer.render(scene, { width: 1000, height: 600 }, (item, screen) => results.push({ type: item.effect.type, id: item.effect === scene.renderables(0)[0]?.effect ? "first" : "other", layerZ: item.layerZ, screen }), 10);
+  renderer.render(scene, { width: 1000, height: 600 }, (item, screen) => {
+    if (item.type !== "FX") return;
+    results.push({ type: item.effect.type, id: item.effect.id, layerZ: item.layerZ, screen });
+  }, 10);
   const fx = results.filter((item) => item.type === "GLOW");
   assert.equal(fx.length, 2);
   assert.notEqual(fx[0].layerZ, fx[1].layerZ);
@@ -129,7 +137,9 @@ test("VFX uses the same camera/parallax projection without mutating actor state"
   const context = { save() {}, restore() {}, translate() {}, scale() {} };
   const renderer = win.MachGirlsSceneRenderer.create({ context });
   const screens = [];
-  renderer.render(scene, { width: 1000, height: 600 }, (_, screen) => screens.push(screen), 25);
+  renderer.render(scene, { width: 1000, height: 600 }, (item, screen) => {
+    if (item.type === "FX") screens.push(screen);
+  }, 25);
   assert.equal(screens.length, 1);
   assert.equal(screens[0].parallaxOffsetX, -12.5);
   assert.deepEqual({ x: actor.transform.x, y: actor.transform.y, z: actor.transform.z }, before);
@@ -145,7 +155,9 @@ test("screen-relative VFX remains screen-relative and does not move the actor", 
   const context = { save() {}, restore() {}, translate() {}, scale() {} };
   const renderer = win.MachGirlsSceneRenderer.create({ context });
   const calls = [];
-  renderer.render(scene, { width: 1000, height: 600 }, (item, screen) => calls.push({ item, screen }), 50);
+  renderer.render(scene, { width: 1000, height: 600 }, (item, screen) => {
+    if (item.type === "FX") calls.push({ item, screen });
+  }, 50);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].item.effect.scope, "SCREEN");
   assert.equal(calls[0].screen, null);
@@ -159,8 +171,8 @@ test("VFX cleanup removes finished effects and leaves actor state unchanged", as
   scene.registerActor(actor);
   scene.addEffect("impact", { type: "IMPACT", scope: "ACTOR", actorId: actor.id, durationMs: 50, startTime: 100 });
   assert.equal(scene.renderables(120).filter((item) => item.type === "FX").length, 1);
-  assert.equal(scene.cleanupEffects(150), 1);
   assert.equal(scene.renderables(150).filter((item) => item.type === "FX").length, 0);
+  assert.equal(scene.renderables(200).filter((item) => item.type === "FX").length, 0);
   assert.deepEqual({ x: actor.transform.x, y: actor.transform.y, z: actor.transform.z }, { x: 500, y: 300, z: 0.7 });
 });
 

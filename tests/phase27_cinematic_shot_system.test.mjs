@@ -68,7 +68,7 @@ test("Phase 27 camera interpolation is deterministic", async () => {
   a.setShot("ENEMY_FOCUS", false, 0);
   b.setShot("ENEMY_FOCUS", false, 0);
   assert.deepEqual(a.getCameraFrame(1200, 700, 180), b.getCameraFrame(1200, 700, 180));
-  a.setEntity("COMPANION_LEFT", { enabled: true, depth: 0.42, scale: 0.9 });
+  a.setEntity("COMPANION_LEFT", { enabled: true, depth: 0.42, scale: 0.9, baselineScale: 0.9 });
   const frame = a.getEntityFrame("COMPANION_LEFT", 1200, 700);
   assert.equal(frame.enabled, true);
   assert.equal(frame.depth, 0.42);
@@ -138,5 +138,7 @@ test("Phase 27 allows identity-neutral enemy/companion staging without creating 
   assert.match(studio, /COMPANION_LEFT/);
   assert.match(studio, /ENEMY_SECONDARY/);
   assert.match(studio, /maki_mach/);
-  assert.match(studio, /formally registered/);
+  assert.match(studio, /const FORMAL_CHARACTER_IDS = new Set\(\["yuri"\]\)/);
+  assert.match(studio, /entityId === "maki_mach"/);
+  assert.match(studio, /maki_mach no está definido como characterId formal/);
 });

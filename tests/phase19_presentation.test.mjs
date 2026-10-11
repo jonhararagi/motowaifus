@@ -3,6 +3,26 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import vm from "node:vm";
 
+const PRESENTATION_DEPENDENCIES = [
+  "intento_2/webapp/js/scene/world_space.js",
+  "intento_2/webapp/js/scene/camera.js",
+  "intento_2/webapp/js/scene/mesh_deformation.js",
+  "intento_2/webapp/js/scene/lighting.js",
+  "intento_2/webapp/js/scene/procedural_motion.js",
+  "intento_2/webapp/js/scene/actor.js",
+  "intento_2/webapp/js/scene/animation.js",
+  "intento_2/webapp/js/scene/scene.js",
+  "intento_2/webapp/js/scene/renderer.js",
+  "intento_2/webapp/js/scene/presentation_events.js",
+  "intento_2/webapp/js/combat_shot_director.js"
+];
+
+async function loadPresentationDependencies(context) {
+  for (const path of PRESENTATION_DEPENDENCIES) {
+    vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
+  }
+}
+
 function makeCanvas() {
   const calls = [];
   const context = {
@@ -30,6 +50,9 @@ function makeCanvas() {
     save() {},
     restore() {},
     translate() {},
+    scale() {},
+    rotate() {},
+    setTransform() {},
     createLinearGradient() {
       return { addColorStop() {} };
     },
@@ -98,6 +121,7 @@ async function loadPresentationWithImageTracking(source) {
     Map,
     JSON
   });
+  await loadPresentationDependencies(context);
   vm.runInContext(source, context, { filename: "combat_presentation.js" });
   return { api: context.window.CombatPresentation, fake, imageSources };
 }
@@ -138,6 +162,7 @@ async function loadPresentation() {
     Map,
     JSON
   });
+  await loadPresentationDependencies(context);
   vm.runInContext(source, context, { filename: "combat_presentation.js" });
   return { api: context.window.CombatPresentation, fake };
 }
@@ -240,7 +265,10 @@ test("card interaction remains a real HTML button while realtime render continue
   ]);
   assert.match(html, /<div id="combat-hand" class="combat-hand"/);
   assert.match(combat, /document\.createElement\("button"\)/);
-  assert.match(combat, /requestAnimationFrame\(drawFrame\)/);
+  assert.match(combat, /requestAnimationFrame\(frame\)/);
+  assert.match(combat, /function startMainLoop\(/);
+  assert.match(combat, /CombatEngine\.advanceTime\(view\.gameState, deltaMs\)/);
+  assert.match(combat, /presentation\?\.render\(view\.gameState\?\.combat \|\| null, now\)/);
   assert.match(css, /button:focus-visible/);
 });
 

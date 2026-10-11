@@ -45,7 +45,7 @@ test("the new model starts with an active clock, autos and a compact tactical ha
   assert.ok(state.combat.enemy.autoAttack);
 });
 
-test("saveVersion 1 compatibility remains a storage concern, not a combat-state migration", async () => {
+test("current save schema remains a storage concern, not a combat-state migration", async () => {
   const context = vm.createContext({
     window: { localStorage: {
       getItem: () => null, setItem: () => {}, removeItem: () => {}
@@ -57,7 +57,9 @@ test("saveVersion 1 compatibility remains a storage concern, not a combat-state 
     context,
     { filename: "save_manager.js" }
   );
-  const oldSave = context.window.SaveManager.createDefaultSave("legacy-player");
-  assert.equal(oldSave.saveVersion, 1);
-  assert.equal(context.window.SaveManager.load().save.saveVersion, 1);
+  const saveManager = context.window.SaveManager;
+  const currentSave = saveManager.createDefaultSave("current-player");
+  assert.equal(saveManager.CURRENT_SAVE_VERSION, 2);
+  assert.equal(currentSave.saveVersion, saveManager.CURRENT_SAVE_VERSION);
+  assert.equal(saveManager.load().save.saveVersion, saveManager.CURRENT_SAVE_VERSION);
 });

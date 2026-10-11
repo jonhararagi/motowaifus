@@ -291,15 +291,15 @@ test("new effects are recorded in the existing combat event log", async () => {
   assert.ok(state.combat.events.some((event) => event.type === "heal_applied"));
 });
 
-test("save schema remains version 1 and state snapshots preserve modifiers", async () => {
+test("save schema is version 2 and state snapshots preserve modifiers", async () => {
   const w = await loadCore();
   const state = start(w, "test_support");
   useCard(w, state, "support_sync");
   const snapshot = w.GameState.snapshot(state);
   assert.equal(snapshot.combat.player.modifiers.damageOut.amount, 0.15);
   const saveSource = await readFile("intento_2/webapp/js/storage/save_manager.js", "utf8");
-  assert.match(saveSource, /CURRENT_SAVE_VERSION = 1/);
-  assert.doesNotMatch(saveSource, /CURRENT_SAVE_VERSION = 2/);
+  assert.match(saveSource, /CURRENT_SAVE_VERSION = 2/);
+  assert.match(saveSource, /value\.saveVersion === 1/);
 });
 
 test("presentation exposes feedback contracts for all Phase 21 effects", async () => {

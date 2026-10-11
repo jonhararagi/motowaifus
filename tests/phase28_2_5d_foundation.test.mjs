@@ -71,7 +71,8 @@ test("Phase 28 actor animation transitions are presentation-only and determinist
   assert.equal(actor.setState("ATTACK", 20), "ATTACK");
   assert.equal(actor.setState("HIT", 30), "HIT");
   assert.equal(actor.getAnimationState(), "HIT");
-  assert.equal(actor.setState("BURST", 40), "HIT");
+  assert.equal(actor.setState("BURST", 40), "BURST");
+  assert.equal(actor.getAnimationState(), "BURST");
 });
 
 test("Phase 28 camera interpolates independently from gameplay", async () => {

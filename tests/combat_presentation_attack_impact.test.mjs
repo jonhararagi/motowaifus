@@ -6,11 +6,14 @@ import vm from "node:vm";
 const FILES = [
   "intento_2/webapp/js/scene/world_space.js",
   "intento_2/webapp/js/scene/camera.js",
-  "intento_2/webapp/js/scene/animation.js",
-  "intento_2/webapp/js/scene/presentation_events.js",
+  "intento_2/webapp/js/scene/mesh_deformation.js",
+  "intento_2/webapp/js/scene/lighting.js",
+  "intento_2/webapp/js/scene/procedural_motion.js",
   "intento_2/webapp/js/scene/actor.js",
+  "intento_2/webapp/js/scene/animation.js",
   "intento_2/webapp/js/scene/scene.js",
   "intento_2/webapp/js/scene/renderer.js",
+  "intento_2/webapp/js/scene/presentation_events.js",
   "intento_2/webapp/js/combat_shot_director.js",
   "intento_2/webapp/js/combat_presentation.js"
 ];
@@ -97,9 +100,6 @@ const REAL_GAME_FILES = [
   "intento_2/webapp/js/game/rewards.js",
   "intento_2/webapp/js/progression.js",
   "intento_2/webapp/js/storage/save_manager.js",
-  "intento_2/webapp/js/scene/mesh_deformation.js",
-  "intento_2/webapp/js/scene/procedural_motion.js",
-  "intento_2/webapp/js/scene/lighting.js",
   ...FILES
 ];
 
