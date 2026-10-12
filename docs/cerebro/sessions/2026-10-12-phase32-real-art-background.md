@@ -69,6 +69,21 @@ The runtime test workflow `.github/workflows/rocket-bunny-runtime-tests.yml` run
 - Combat math, Energy, cards, cooldowns, BREAK/BURST rules and save state were not intentionally changed.
 - This is a working art integration on an isolated branch, not a final approved background or a declaration that the entire game is finished.
 
+## Follow-up asset search — 2026-10-12
+
+Additional searches were performed against OpenGameArt, Japanese creator material sites, BOOTH and itch.io. Findings are recorded to avoid repeating failed candidates:
+
+- **OpenGameArt — [Iara (mermaid)](https://opengameart.org/content/iara-mermaid):** CC0 sprite sheet includes a character riding a bike and one damage frame, but is pixel art and its look conflicts with the currently selected illustrated urban background. Rejected for the Mach-Girls visual target; kept as a possible technical reference only.
+- **OpenGameArt — [2D Bike Sprite](https://opengameart.org/content/2d-bike-sprite-1):** CC0 vector chopper, approximately 240×140 px, with and without a blank rider. License is permissive, but the small simple chopper alone does not satisfy the intended bosozoku motorcycle/rider style. Not integrated.
+- **Wataokiba (わたおきば):** the artist explicitly allows game use and cropping/resizing/color changes, but prohibits redistributing the original source material. The inspected `josei20.png` is a bust portrait rather than a full-body riding/action pose, so it is not a combat sprite. More entries require visual suitability inspection before use.
+- **BOOTH item 6505641:** explicitly declares AI-generated art; excluded from the asset candidate pool.
+- **BOOTH item 8814743:** a free male mini-bike standee with a comedic style and terms prohibiting redistribution; not a suitable Yuri/Mach-Girls combat rider.
+- **itch.io tags:** the public category returned zero matches for `Anime + motorcycle` and `Anime + motorbike`. Some `No AI` category fetches were blocked, so those pages are not considered exhaustively inspected.
+
+### Conclusion of follow-up search
+
+No human-authored, free, visually compatible full-body female riding/action asset with clear game-use terms has yet been verified. No mismatched sprite has been committed merely to replace geometry with an equally unsuitable image. The city background remains a real improvement; the rider and motorcycle art gate remains open.
+
 ## Remaining visible gap
 
 The rider and motorcycle still use the runtime's technical geometric fallback unless a human-approved character/motorcycle asset is present. Enemies may also lack finished art. A single real city background is an actual improvement, but it does **not** close the complete game-art gap.
