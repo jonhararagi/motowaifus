@@ -148,6 +148,27 @@
     const scene = window.MachGirlsScene?.create?.({ camera: sceneCamera }) || null;
     const sceneRenderer = window.MachGirlsSceneRenderer?.create?.({ context, camera: sceneCamera }) || null;
     const presentationEvents = window.MachGirlsPresentationEvents?.create?.() || null;
+    const phase32AssetMode = /(?:^|[?&])phase32Assets=1(?:&|$)/.test(String(window.location?.search || ""));
+    const phase32ImagePaths = Object.freeze({
+      "skyline-a": "./assets/candidates/phase32-warped-city/skyline-a.png",
+      "buildings-bg": "./assets/candidates/phase32-warped-city/buildings-bg.png",
+      "near-buildings-bg": "./assets/candidates/phase32-warped-city/near-buildings-bg.png",
+      "woman-cycle": "./assets/candidates/phase32-warped-city/woman_cycle.png",
+      "enemy-explosion": "./assets/candidates/phase32-warped-city/enemy-explosion.png",
+      "cop-idle-1": "./assets/candidates/phase32-warped-city/cop-idle-1.png",
+      "cop-idle-2": "./assets/candidates/phase32-warped-city/cop-idle-2.png",
+      "cop-idle-3": "./assets/candidates/phase32-warped-city/cop-idle-3.png",
+      "cop-run-1": "./assets/candidates/phase32-warped-city/cop-run-1.png",
+      "cop-run-2": "./assets/candidates/phase32-warped-city/cop-run-2.png",
+      "cop-run-3": "./assets/candidates/phase32-warped-city/cop-run-3.png",
+      "cop-run-4": "./assets/candidates/phase32-warped-city/cop-run-4.png",
+      "cop-run-5": "./assets/candidates/phase32-warped-city/cop-run-5.png",
+      "cop-run-6": "./assets/candidates/phase32-warped-city/cop-run-6.png",
+      "cop-run-7": "./assets/candidates/phase32-warped-city/cop-run-7.png",
+      "cop-run-8": "./assets/candidates/phase32-warped-city/cop-run-8.png",
+      "cop-run-9": "./assets/candidates/phase32-warped-city/cop-run-9.png",
+      "cop-run-10": "./assets/candidates/phase32-warped-city/cop-run-10.png"
+    });
 
     const state = {
       effects: [],
@@ -846,6 +867,22 @@
       return null;
     }
 
+    function phase32Image(name) {
+      if (!phase32AssetMode || typeof Image === "undefined") return null;
+      const source = phase32ImagePaths[name];
+      if (!source) return null;
+      const cacheKey = "phase32:" + name;
+      const existing = state.imageCache.get(cacheKey);
+      if (existing?.src === source) {
+        return existing.image.complete && existing.image.naturalWidth > 0 ? existing.image : null;
+      }
+      const image = new Image();
+      image.decoding = "async";
+      image.src = source;
+      state.imageCache.set(cacheKey, { src: source, image });
+      return null;
+    }
+
     function setAsset(slot, source) {
       const key = String(slot);
       if (!ASSET_SLOTS.includes(key)) return false;
@@ -890,6 +927,20 @@
     }
 
     function drawBackground(width, height, combat, now) {
+      if (phase32AssetMode) {
+        const gradient = context.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, "#080a18");
+        gradient.addColorStop(.58, "#21122c");
+        gradient.addColorStop(1, "#080b17");
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, width, height);
+        if (!combat) {
+          drawText("NIGHT RUN", width / 2, height * .40, 27, "950", "center", "#f4eaff");
+          drawText("START BATTLE TO ENTER THE CITY", width / 2, height * .40 + 31, 11, "800", "center", "rgba(244,234,255,.70)");
+        }
+        return;
+      }
+
       const gradient = context.createLinearGradient(0, 0, 0, height);
       gradient.addColorStop(0, "#050711");
       gradient.addColorStop(.46, "#0a1020");
@@ -930,6 +981,66 @@
     }
 
     function drawParallax(width, height, now) {
+      if (phase32AssetMode) {
+        const multiplier = Number(state.shotFrame?.current?.parallaxMultiplier || 1);
+        const scale = Math.max(.5, height / 216);
+        const layers = [
+          { name: "skyline-a", speed: 5, alpha: 1 },
+          { name: "buildings-bg", speed: 13, alpha: .96 },
+          { name: "near-buildings-bg", speed: 23, alpha: 1 }
+        ];
+        for (const layer of layers) {
+          const image = phase32Image(layer.name);
+          if (!image) continue;
+          const tileWidth = Math.max(1, image.naturalWidth * scale);
+          const tileHeight = image.naturalHeight * scale;
+          const drift = ((Number(now) || 0) * layer.speed * multiplier / 1000) % tileWidth;
+          context.save();
+          context.globalAlpha = layer.alpha;
+          for (let x = -drift - tileWidth; x < width + tileWidth; x += tileWidth) {
+            context.drawImage(image, x, height - tileHeight, tileWidth, tileHeight);
+          }
+          context.restore();
+        }
+
+        // Perspective road plane beneath the committed city layers.
+        const roadTop = height * .68;
+        context.save();
+        context.fillStyle = "#111322";
+        context.beginPath();
+        context.moveTo(width * .42, roadTop);
+        context.lineTo(width * .58, roadTop);
+        context.lineTo(width, height);
+        context.lineTo(0, height);
+        context.closePath();
+        context.fill();
+        context.strokeStyle = "rgba(52,225,255,.62)";
+        context.lineWidth = Math.max(1.5, width / 650);
+        context.beginPath();
+        context.moveTo(width * .42, roadTop);
+        context.lineTo(0, height);
+        context.moveTo(width * .58, roadTop);
+        context.lineTo(width, height);
+        context.stroke();
+        context.strokeStyle = "rgba(255,71,196,.28)";
+        context.lineWidth = Math.max(1, width / 1000);
+        context.beginPath();
+        context.moveTo(width * .5, roadTop + 8);
+        context.lineTo(width * .5, height);
+        context.stroke();
+        const dashPhase = ((Number(now) || 0) / 16) % 38;
+        context.fillStyle = "rgba(237,229,255,.62)";
+        for (let i = 0; i < 6; i += 1) {
+          const progress = (i + 1) / 6;
+          const y = roadTop + (height - roadTop) * progress * progress;
+          const dashWidth = 2 + 7 * progress;
+          const dashHeight = 2 + 10 * progress;
+          context.fillRect(width * .5 - dashWidth / 2, y + dashPhase * progress, dashWidth, dashHeight);
+        }
+        context.restore();
+        return;
+      }
+
       const multiplier = Number(state.shotFrame?.current?.parallaxMultiplier || 1);
       const drift = (Number(now) / 95 * multiplier) % 54;
       context.strokeStyle = "rgba(91,150,224," + (.13 * Math.min(1.5, multiplier)) + ")";
@@ -1241,7 +1352,16 @@
       };
       const mode = modeMap[visualState] || "idle";
       const spriteSlot = assetSlotForFighter(team, mode);
-      const image = spriteSlot ? imageFor(spriteSlot) : null;
+      const phase32SpriteName = !phase32AssetMode
+        ? null
+        : team === "player"
+          ? "woman-cycle"
+          : mode === "attack"
+            ? "cop-run-" + (Math.floor((Number(now) || 0) / 75) % 10 + 1)
+            : "cop-idle-" + (Math.floor((Number(now) || 0) / 280) % 3 + 1);
+      const image = phase32AssetMode
+        ? phase32Image(phase32SpriteName)
+        : spriteSlot ? imageFor(spriteSlot) : null;
       context.save();
       const actorPoint = {
         x: point.x,
@@ -1251,15 +1371,25 @@
       drawFoundationShadow(team, actorPoint, baseScale);
       context.translate(stateForFighter.lunge, 0);
       if (image) {
-        const imageWidth = 190 * scale;
-        const imageHeight = 224 * scale;
-        context.globalAlpha = .98;
-        context.drawImage(image, point.x - imageWidth / 2, point.y - imageHeight + 74, imageWidth, imageHeight);
+        if (phase32AssetMode) {
+          const imageHeight = (team === "player" ? 178 : 142) * scale;
+          const aspect = image.naturalWidth / Math.max(1, image.naturalHeight);
+          const imageWidth = imageHeight * aspect;
+          context.globalAlpha = .98;
+          context.imageSmoothingEnabled = false;
+          context.drawImage(image, point.x - imageWidth / 2, point.y - imageHeight + (team === "player" ? 61 : 42) * scale, imageWidth, imageHeight);
+          context.globalAlpha = 1;
+        } else {
+          const imageWidth = 190 * scale;
+          const imageHeight = 224 * scale;
+          context.globalAlpha = .98;
+          context.drawImage(image, point.x - imageWidth / 2, point.y - imageHeight + 74, imageWidth, imageHeight);
+        }
       } else {
         drawPlaceholderFighter(team, fighter, point.x, point.y, scale, mode, now);
       }
-      drawMotorcycle(team, actorPoint, baseScale, mode, now);
-if (composition.identityLayer) {
+      if (!phase32AssetMode) drawMotorcycle(team, actorPoint, baseScale, mode, now);
+if (!phase32AssetMode && composition.identityLayer) {
         context.fillStyle = team === "enemy" ? "rgba(255,100,142,.16)" : "rgba(111,183,255,.16)";
         context.beginPath();
         context.arc(point.x, point.y - 68 * scale, 82 * scale, 0, Math.PI * 2);
@@ -1364,6 +1494,22 @@ if (composition.identityLayer) {
       if (effect.blockAbsorbed > 0) drawText("BLOCK " + effect.blockAbsorbed, point.x, point.y - 92, 12, "900", "center", "#6ee8d3", alpha);
       if (effect.breakDamage > 0) drawText("BRK -" + effect.breakDamage, point.x, point.y - 78, 10, "900", "center", "#ffb24d", alpha);
       if (effect.damageReductionApplied > 0) drawText("DR -" + effect.damageReductionApplied, point.x, point.y - 62, 10, "900", "center", "#8df1e1", alpha);
+      if (phase32AssetMode) {
+        const image = phase32Image("enemy-explosion");
+        if (image) {
+          const frameWidth = image.naturalWidth / 6;
+          const frameHeight = image.naturalHeight;
+          const frame = Math.min(5, Math.floor(p * 6));
+          const drawHeight = clamp(Math.min(width, height) * .30, 78, 172);
+          const drawWidth = drawHeight * (frameWidth / frameHeight);
+          context.save();
+          context.globalAlpha = alpha;
+          context.imageSmoothingEnabled = false;
+          context.drawImage(image, frame * frameWidth, 0, frameWidth, frameHeight, point.x - drawWidth / 2, point.y - drawHeight * .74, drawWidth, drawHeight);
+          context.restore();
+        }
+        return;
+      }
       const radius = 28 + p * 42;
       context.fillStyle = "rgba(255,255,255," + (.18 * alpha) + ")";
       context.beginPath();
