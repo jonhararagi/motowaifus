@@ -97,6 +97,42 @@
     "scene.enemy_far_character",
     "scene.enemy_far_motorcycle"
   ]);
+  const PROTOTYPE_ASSET_ROOT = "./assets/mach-girls-prototype/";
+  const PROTOTYPE_BIKE_SOURCE = "https://opengameart.org/sites/default/files/spr_choppernoman_0.png";
+  const PROTOTYPE_DEFAULT_ASSETS = Object.freeze({
+    "player.idle": PROTOTYPE_ASSET_ROOT + "characters/biker/idle.png",
+    "player.attack": PROTOTYPE_ASSET_ROOT + "characters/biker/attack2.png",
+    "player.hurt": PROTOTYPE_ASSET_ROOT + "characters/biker/hurt.png",
+    "player.break": PROTOTYPE_ASSET_ROOT + "characters/biker/death.png",
+    "player.victory": PROTOTYPE_ASSET_ROOT + "characters/biker/idle.png",
+    "player.defeat": PROTOTYPE_ASSET_ROOT + "characters/biker/death.png",
+    "player.motorcycle": PROTOTYPE_BIKE_SOURCE,
+    "enemy.idle": PROTOTYPE_ASSET_ROOT + "characters/cyborg/idle.png",
+    "enemy.attack": PROTOTYPE_ASSET_ROOT + "characters/cyborg/attack2.png",
+    "enemy.hurt": PROTOTYPE_ASSET_ROOT + "characters/cyborg/hurt.png",
+    "enemy.break": PROTOTYPE_ASSET_ROOT + "characters/cyborg/death.png",
+    "enemy.victory": PROTOTYPE_ASSET_ROOT + "characters/cyborg/idle.png",
+    "enemy.defeat": PROTOTYPE_ASSET_ROOT + "characters/cyborg/death.png",
+    "enemy.motorcycle": PROTOTYPE_BIKE_SOURCE,
+    "prototype.skyline_a": PROTOTYPE_ASSET_ROOT + "backgrounds/warped-city/skyline-a.png",
+    "prototype.skyline_b": PROTOTYPE_ASSET_ROOT + "backgrounds/warped-city/skyline-b.png",
+    "prototype.buildings": PROTOTYPE_ASSET_ROOT + "backgrounds/warped-city/buildings-bg.png",
+    "prototype.near_buildings": PROTOTYPE_ASSET_ROOT + "backgrounds/warped-city/near-buildings-bg.png"
+  });
+  const PROTOTYPE_SPRITE_FRAMES = Object.freeze({
+    "player.idle": Object.freeze({ frameWidth: 48, frames: 4, fps: 7, loop: true }),
+    "player.attack": Object.freeze({ frameWidth: 48, frames: 8, fps: 18, loop: false }),
+    "player.hurt": Object.freeze({ frameWidth: 48, frames: 2, fps: 9, loop: false }),
+    "player.break": Object.freeze({ frameWidth: 48, frames: 6, fps: 12, loop: false }),
+    "player.victory": Object.freeze({ frameWidth: 48, frames: 4, fps: 7, loop: true }),
+    "player.defeat": Object.freeze({ frameWidth: 48, frames: 6, fps: 12, loop: false }),
+    "enemy.idle": Object.freeze({ frameWidth: 48, frames: 4, fps: 7, loop: true }),
+    "enemy.attack": Object.freeze({ frameWidth: 48, frames: 8, fps: 18, loop: false }),
+    "enemy.hurt": Object.freeze({ frameWidth: 48, frames: 2, fps: 9, loop: false }),
+    "enemy.break": Object.freeze({ frameWidth: 48, frames: 6, fps: 12, loop: false }),
+    "enemy.victory": Object.freeze({ frameWidth: 48, frames: 4, fps: 7, loop: true }),
+    "enemy.defeat": Object.freeze({ frameWidth: 48, frames: 6, fps: 12, loop: false })
+  });
   const CAMERA_PRESETS = Object.freeze({
     IDLE: Object.freeze({ zoom: 1, offsetX: 0, offsetY: 0, duration: 420, shake: 0 }),
     APPROACH: Object.freeze({ zoom: 1.035, offsetX: 10, offsetY: -4, duration: 340, shake: 0 }),
@@ -827,9 +863,11 @@
     }
 
     function assetFor(slot) {
-      const parts = String(slot).split(".");
+      const key = String(slot);
+      const parts = key.split(".");
       if (parts.length !== 2) return null;
-      return state.assets[parts[0]]?.[parts[1]] || null;
+      const configured = state.assets[parts[0]]?.[parts[1]];
+      return configured || PROTOTYPE_DEFAULT_ASSETS[key] || null;
     }
 
     function imageFor(slot) {
@@ -891,68 +929,61 @@
 
     function drawBackground(width, height, combat, now) {
       const gradient = context.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, "#050711");
-      gradient.addColorStop(.46, "#0a1020");
-      gradient.addColorStop(1, "#0d1728");
+      gradient.addColorStop(0, "#070a18");
+      gradient.addColorStop(.54, "#10172a");
+      gradient.addColorStop(1, "#070b16");
       context.fillStyle = gradient;
       context.fillRect(0, 0, width, height);
-      const horizon = height * .53;
-      context.fillStyle = "rgba(18,30,52,.84)";
-      context.fillRect(0, horizon - 46, width, 58);
-      for (let i = 0; i < 12; i += 1) {
-        const x = ((i * 127 + width * .12) % (width + 140)) - 70;
-        const h = 18 + ((i * 17) % 46);
-        context.fillRect(x, horizon - h - 4, 22 + (i % 3) * 10, h);
+      const skylineA = imageFor("prototype.skyline_a");
+      const skylineB = imageFor("prototype.skyline_b");
+      const buildings = imageFor("prototype.buildings");
+      const nearBuildings = imageFor("prototype.near_buildings");
+      const cityReady = Boolean(skylineA && skylineB && buildings && nearBuildings);
+      if (cityReady) {
+        const multiplier = Math.max(.25, Number(state.shotFrame?.current?.parallaxMultiplier || 1));
+        const repeatLayer = (img, y, h, speed, alpha) => {
+          if (!img?.naturalWidth || !img?.naturalHeight) return;
+          const w = h * img.naturalWidth / img.naturalHeight;
+          const offset = ((Number(now) * speed * multiplier) % w + w) % w;
+          context.globalAlpha = alpha;
+          for (let x = -offset - w; x < width + w; x += w) context.drawImage(img, x, y, w, h);
+          context.globalAlpha = 1;
+        };
+        context.imageSmoothingEnabled = false;
+        repeatLayer(skylineB, 0, height * 1.02, .004, 1);
+        repeatLayer(skylineA, 0, height * 1.02, .009, .25);
+        const midH = height * .71, midW = midH * buildings.naturalWidth / buildings.naturalHeight;
+        const midOffset = ((Number(now) * .016 * multiplier) % midW + midW) % midW;
+        context.globalAlpha = .92;
+        for (let x = -midOffset - midW; x < width + midW; x += midW) context.drawImage(buildings, x, height * .19, midW, midH);
+        context.globalAlpha = 1;
+        const nearH = height * .93, nearW = nearH * nearBuildings.naturalWidth / nearBuildings.naturalHeight;
+        const nearOffset = ((Number(now) * .026 * multiplier) % nearW + nearW) % nearW;
+        for (let x = -nearOffset - nearW; x < width + nearW; x += nearW) context.drawImage(nearBuildings, x, height * .07, nearW, nearH);
+        const roadShade = context.createLinearGradient(0, height * .68, 0, height);
+        roadShade.addColorStop(0, "rgba(5,8,19,0)");
+        roadShade.addColorStop(.34, "rgba(5,8,19,.32)");
+        roadShade.addColorStop(1, "rgba(3,5,13,.9)");
+        context.fillStyle = roadShade;
+        context.fillRect(0, height * .68, width, height * .32);
       }
-      context.fillStyle = combat ? "rgba(255,255,255,.03)" : "rgba(255,255,255,.015)";
-      context.fillRect(0, horizon, width, height - horizon);
-      context.strokeStyle = "rgba(122,170,232,.16)";
-      context.lineWidth = 1;
-      for (let line = 1; line <= 9; line += 1) {
-        const y = horizon + line * line * 5.4;
-        context.beginPath();
-        context.moveTo(0, y);
-        context.lineTo(width, y);
-        context.stroke();
-      }
-      for (let line = -9; line <= 9; line += 1) {
-        const x = width / 2 + line * 48;
-        context.beginPath();
-        context.moveTo(width / 2, horizon);
-        context.lineTo(x * 1.9, height);
-        context.stroke();
-      }
-      drawText("MACH-GIRLS // COMBAT STAGE", width / 2, 26, 10, "950", "center", "rgba(255,255,255,.42)");
+      drawText("MACH-GIRLS // COMBAT", width / 2, 24, 10, "950", "center", "rgba(255,255,255,.58)");
       if (!combat) {
         drawText("ARENA READY", width / 2, height * .46, 27, "950", "center", "#ffffff");
-        drawText("START BATTLE · la escena está lista", width / 2, height * .46 + 32, 12, "700", "center", "rgba(255,255,255,.56)");
+        drawText("START BATTLE · la escena está lista", width / 2, height * .46 + 32, 12, "700", "center", "rgba(255,255,255,.72)");
       }
     }
 
     function drawParallax(width, height, now) {
       const multiplier = Number(state.shotFrame?.current?.parallaxMultiplier || 1);
+      const cityReady = Boolean(imageFor("prototype.skyline_b") && imageFor("prototype.buildings") && imageFor("prototype.near_buildings"));
       const drift = (Number(now) / 95 * multiplier) % 54;
       context.strokeStyle = "rgba(91,150,224," + (.13 * Math.min(1.5, multiplier)) + ")";
       context.lineWidth = 1;
-      for (let i = 0; i < 10; i += 1) {
+      for (let i = 0; i < (cityReady ? 5 : 10); i += 1) {
         const x = ((i * 131 + drift * .65) % (width + 120)) - 60;
         const y = 92 + ((i * 47) % Math.max(100, height * .38));
-        context.beginPath();
-        context.moveTo(x, y);
-        context.lineTo(x - 10, y + 30);
-        context.stroke();
-      }
-      context.fillStyle = "rgba(12,24,42,.72)";
-      const horizon = height * .53;
-      for (let i = 0; i < 7; i += 1) {
-        const x = ((i * 173 + drift * .2) % (width + 220)) - 110;
-        const w = 36 + (i % 3) * 14;
-        const h = 42 + (i % 4) * 18;
-        context.fillRect(x, horizon - h, w, h);
-        context.fillStyle = "rgba(110,232,211,.12)";
-        context.fillRect(x + 7, horizon - h + 10, 4, 4);
-        context.fillRect(x + 18, horizon - h + 25, 4, 4);
-        context.fillStyle = "rgba(12,24,42,.72)";
+        context.beginPath(); context.moveTo(x, y); context.lineTo(x - 10, y + 30); context.stroke();
       }
     }
 
@@ -1171,9 +1202,15 @@
       const x = point.x + sign * Number(transform.x || 0);
       const y = point.y + Number(transform.y || 0);
       if (image) {
-        const width = 226 * scale;
-        const height = 120 * scale;
-        context.drawImage(image, x - width / 2, y - height * .44, width, height);
+        const width = 226 * scale, height = 120 * scale;
+        context.save();
+        context.imageSmoothingEnabled = false;
+        if (team === "enemy") {
+          context.translate(x, y);
+          context.scale(-1, 1);
+          context.drawImage(image, -width / 2, -height * .44, width, height);
+        } else context.drawImage(image, x - width / 2, y - height * .44, width, height);
+        context.restore();
       } else {
         drawPlaceholderMotorcycle(team, x, y, scale, mode, now);
         drawText("TECHNICAL MOTORCYCLE PLACEHOLDER · NOT FINAL ART", x, y + 70, 8, "850", "center", "rgba(255,255,255,.58)");
@@ -1181,14 +1218,9 @@
     }
 
     function assetSlotForFighter(team, mode) {
-      const candidates = [
-        team + "." + mode,
-        team + ".sprite",
-        team + ".portrait"
-      ];
-      for (const slot of candidates) {
-        if (ASSET_SLOTS.includes(slot) && assetFor(slot)) return slot;
-      }
+      const fallbackMode = mode === "burst" ? "attack" : null;
+      const candidates = [team + "." + mode, fallbackMode ? team + "." + fallbackMode : null, team + ".sprite", team + ".portrait"].filter(Boolean);
+      for (const slot of candidates) if (ASSET_SLOTS.includes(slot) && assetFor(slot)) return slot;
       return null;
     }
 
@@ -1213,6 +1245,25 @@
       );
       if (attackActive) return VISUAL_STATES.ATTACKING;
       return VISUAL_STATES.NORMAL;
+    }
+
+    function prototypeSpriteElapsed(team, mode, now) {
+      let effectType = null;
+      if (mode === "attack") effectType = "attack";
+      else if (mode === "hurt") effectType = "impact";
+      else if (mode === "burst") effectType = "burst";
+      if (effectType) {
+        for (let index = state.effects.length - 1; index >= 0; index -= 1) {
+          const effect = state.effects[index];
+          const matches = effect.type === effectType &&
+            (effectType === "attack" ? effect.attacker === team :
+              effectType === "impact" ? effect.targetTeam === team : true);
+          if (matches) return Math.max(0, Number(now) - Number(effect.start || 0));
+        }
+        return 0;
+      }
+      if (mode === "break" || mode === "defeat") return 100000;
+      return Number(now) || 0;
     }
 
     function drawFighter(team, combat, width, height, now) {
@@ -1241,24 +1292,32 @@
       };
       const mode = modeMap[visualState] || "idle";
       const spriteSlot = assetSlotForFighter(team, mode);
+      const spriteSource = spriteSlot ? assetFor(spriteSlot) : null;
       const image = spriteSlot ? imageFor(spriteSlot) : null;
       context.save();
-      const actorPoint = {
-        x: point.x,
-        y: point.y,
-        z: foundationDepth
-      };
+      const actorPoint = { x: point.x, y: point.y, z: foundationDepth };
       drawFoundationShadow(team, actorPoint, baseScale);
       context.translate(stateForFighter.lunge, 0);
+      // Bike is drawn first so the rider overlaps its seat and tank.
+      drawMotorcycle(team, actorPoint, baseScale, mode, now);
       if (image) {
-        const imageWidth = 190 * scale;
-        const imageHeight = 224 * scale;
         context.globalAlpha = .98;
-        context.drawImage(image, point.x - imageWidth / 2, point.y - imageHeight + 74, imageWidth, imageHeight);
+        const frameSpec = spriteSource && spriteSource.includes("assets/mach-girls-prototype/characters/") ? PROTOTYPE_SPRITE_FRAMES[spriteSlot] : null;
+        if (frameSpec) {
+          const fw = Number(frameSpec.frameWidth || 48);
+          const elapsed = prototypeSpriteElapsed(team, mode, now);
+          const rawFrame = Math.floor(elapsed / 1000 * frameSpec.fps);
+          const frameIndex = frameSpec.loop ? rawFrame % frameSpec.frames : Math.min(frameSpec.frames - 1, rawFrame);
+          const imageWidth = 190 * scale, imageHeight = 190 * scale;
+          context.imageSmoothingEnabled = false;
+          context.drawImage(image, frameIndex * fw, 0, fw, 48, point.x - imageWidth / 2, point.y - imageHeight + 30, imageWidth, imageHeight);
+        } else {
+          const imageWidth = 190 * scale, imageHeight = 224 * scale;
+          context.drawImage(image, point.x - imageWidth / 2, point.y - imageHeight + 74, imageWidth, imageHeight);
+        }
       } else {
         drawPlaceholderFighter(team, fighter, point.x, point.y, scale, mode, now);
       }
-      drawMotorcycle(team, actorPoint, baseScale, mode, now);
 if (composition.identityLayer) {
         context.fillStyle = team === "enemy" ? "rgba(255,100,142,.16)" : "rgba(111,183,255,.16)";
         context.beginPath();

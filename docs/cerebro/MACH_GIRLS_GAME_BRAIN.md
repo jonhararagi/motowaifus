@@ -655,3 +655,18 @@ The code candidate was checked out by exact SHA in CI. Syntax checks covered `co
 - `YURI_EFFECTIVE_HAND_IS_INTENTIONAL` remains an **OPEN DESIGN QUESTION**: capacity 5 and Yuri kit size 4 are distinct facts. This phase does not change either.
 - Nitro/Redline remain out of the gameplay runtime and remain **OPEN DESIGN QUESTIONS**. No Maki Mach identity or narrative question is resolved here.
 - BONE-007 remains AMBER: synchronization of factual runtime documentation does not close unresolved design decisions. BONEs unrelated to this bounded slice remain at their prior states.
+
+
+## Phase 32 — Licensed art integration and browser proof — 2026-10-12
+
+A real visual recovery was integrated on the isolated branch `art-recovery/real-cyberpunk-assets-01`, code/assets commit `33446fb309adc3046eeeecefb53506fa1611df41`. It replaces the procedural placeholder skyline with bundled CC0 Warped City layers and adds bundled OGA-BY 3.0 Biker/Cyborg sprite sheets with Canvas frame-cropping. A CC0 Chopper PNG is loaded from its original OpenGameArt URL because it could not be bundled in the connector session; the dependency is documented.
+
+Live browser verification against the exact commit observed the combat UI/CSS and 45 scripts loading, background PNGs returning HTTP 200, no observed JavaScript errors, and a live scene with layered city art, pixel-art rider/enemy units on motorcycles, threat telegraph, damage and BREAK effects. A victory-state capture was also reported by the browser operator. See [the Phase 32 handoff](sessions/2026-10-12-phase32-real-art-integration.md) for exact evidence and limitations.
+
+Status labels:
+- Real prototype assets connected: `VERIFIED ON PHASE32 BRANCH`.
+- Visual combat flow: `PASS_REAL — exact-SHA browser session`.
+- Admin-data CI: [run #25](https://github.com/jonhararagi/motowaifus/actions/runs/38247437847) = `SUCCESS`; it only ran `tests/admin_data_v2.test.mjs` and does not validate combat presentation.
+- Full combat/presentation Node suite: `NOT_RUN`; do not infer its status from unrelated CI.
+- Final anime/bōsōzoku rider + motorcycle art: `NOT APPROVED / OPEN WORK`.
+- `main` and `mach-girls-2.5d`: unchanged; the experiment has not been merged.

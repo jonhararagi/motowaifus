@@ -1,0 +1,53 @@
+{
+  "manifestVersion": 1,
+  "status": "PROTOTYPE_NOT_FINAL_ART",
+  "assetSources": [
+    {
+      "id": "warped-city-backgrounds",
+      "title": "Warped City",
+      "author": "Luis Zuno (ansimuz)",
+      "sourceUrl": "https://opengameart.org/content/warped-city",
+      "license": "CC0-1.0",
+      "bundled": true,
+      "files": [
+        "backgrounds/warped-city/skyline-a.png",
+        "backgrounds/warped-city/skyline-b.png",
+        "backgrounds/warped-city/buildings-bg.png",
+        "backgrounds/warped-city/near-buildings-bg.png"
+      ]
+    },
+    {
+      "id": "3-cyberpunk-characters",
+      "title": "3 Cyberpunk Characters",
+      "author": "CraftPix.net",
+      "sourceUrl": "https://opengameart.org/content/3-cyberpunk-characters",
+      "license": "OGA-BY-3.0",
+      "attribution": "3 Cyberpunk Characters by CraftPix.net, via OpenGameArt.org",
+      "bundled": true,
+      "frameWidth": 48,
+      "framesByAnimation": {"idle": 4, "attack2": 8, "hurt": 2, "death": 6},
+      "files": [
+        "characters/biker/idle.png",
+        "characters/biker/attack2.png",
+        "characters/biker/hurt.png",
+        "characters/biker/death.png",
+        "characters/cyborg/idle.png",
+        "characters/cyborg/attack2.png",
+        "characters/cyborg/hurt.png",
+        "characters/cyborg/death.png"
+      ]
+    },
+    {
+      "id": "2d-bike-sprite",
+      "title": "2D Bike Sprite",
+      "author": "Chasersgaming",
+      "sourceUrl": "https://opengameart.org/content/2d-bike-sprite-1",
+      "license": "CC0",
+      "bundled": false,
+      "runtimeUrl": "https://opengameart.org/sites/default/files/spr_choppernoman_0.png",
+      "note": "Bundling the binary was blocked by connector limitations in this session; image is loaded directly from original source URL."
+    }
+  ],
+  "humanApprovalRequired": true,
+  "notCharacterCanon": true
+}
