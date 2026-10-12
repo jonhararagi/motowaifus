@@ -44,5 +44,8 @@ Los descubrimientos fuera de alcance se registran como tareas pendientes; no se 
 ## MEMORIA
 Las decisiones y evidencias que deban sobrevivir a la sesión deben persistirse en GitHub mediante documento + commit + push + verificación remota.
 
+## Recuperación visual real — Phase 32
+La integración real de PNG con prueba de navegador está documentada en [Phase 32 — Real art integration and live browser proof](sessions/2026-10-12-phase32-real-art-integration.md). El código y los assets están en la rama aislada `art-recovery/real-cyberpunk-assets-01`, commit `33446fb309adc3046eeeecefb53506fa1611df41`; no se han fusionado. Es arte de prototipo con licencias registradas, no arte final aprobado.
+
 ## PRINCIPIO
 El Cerebro protege simultáneamente calidad, continuidad, evidencia, seguridad del cambio y velocidad de iteración.
