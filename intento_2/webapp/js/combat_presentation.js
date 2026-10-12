@@ -88,6 +88,7 @@
     "telegraph.attack",
     "telegraph.defend",
     "telegraph.debuff",
+    "scene.background",
     "scene.companion_left_character",
     "scene.companion_left_motorcycle",
     "scene.companion_right_character",
@@ -191,6 +192,14 @@
       sceneVfxSequence: 0,
       sceneVfxIds: new Set()
     };
+
+    // Minchirie / みんちりえ provides this urban street background for use in games.
+    // We reference the creator-hosted image rather than republishing the source file.
+    // The runtime darkens and tints it for a provisional Mach-Girls night-combat treatment.
+    setAsset(
+      "scene.background",
+      "https://min-chi.material.jp/mc/materials/background-c/urban_street/_urban_street_1.jpg"
+    );
 
     function rememberAction(actionId) {
       if (!actionId) return false;
@@ -778,6 +787,7 @@
       const isPlayer = entityId === playerId;
       const isEnemy = entityId === enemyId;
       const sceneRole = String(record.sceneRole || "").toUpperCase();
+      if (type === "BACKGROUND") return "scene.background";
       const sceneSlots = {
         COMPANION_LEFT: { CHARACTER: "scene.companion_left_character", MOTORCYCLE: "scene.companion_left_motorcycle" },
         COMPANION_RIGHT: { CHARACTER: "scene.companion_right_character", MOTORCYCLE: "scene.companion_right_motorcycle" },
@@ -890,6 +900,54 @@
     }
 
     function drawBackground(width, height, combat, now) {
+      const illustratedBackground = imageFor("scene.background");
+      if (illustratedBackground) {
+        const sourceWidth = Number(illustratedBackground.naturalWidth || illustratedBackground.width || 1920);
+        const sourceHeight = Number(illustratedBackground.naturalHeight || illustratedBackground.height || 1080);
+        const cameraZoom = clamp(Number(state.shotFrame?.current?.zoom || 1), 0.96, 1.16);
+        const coverScale = Math.max(width / sourceWidth, height / sourceHeight) * cameraZoom;
+        const drawWidth = sourceWidth * coverScale;
+        const drawHeight = sourceHeight * coverScale;
+        const driftX = Math.sin(Number(now || 0) / 5200) * width * 0.006;
+        const driftY = Math.cos(Number(now || 0) / 7100) * height * 0.003;
+        context.drawImage(
+          illustratedBackground,
+          (width - drawWidth) / 2 + driftX,
+          (height - drawHeight) / 2 + driftY,
+          drawWidth,
+          drawHeight
+        );
+
+        // Night grade keeps the creator's original art intact while giving the game its
+        // established blue/pink cyberpunk palette and reserving contrast for combat FX.
+        const nightGrade = context.createLinearGradient(0, 0, 0, height);
+        nightGrade.addColorStop(0, "rgba(5, 11, 34, 0.48)");
+        nightGrade.addColorStop(0.48, "rgba(12, 7, 34, 0.40)");
+        nightGrade.addColorStop(1, "rgba(2, 5, 17, 0.68)");
+        context.fillStyle = nightGrade;
+        context.fillRect(0, 0, width, height);
+
+        const neonWash = context.createLinearGradient(0, 0, width, 0);
+        neonWash.addColorStop(0, "rgba(24, 78, 226, 0.14)");
+        neonWash.addColorStop(0.48, "rgba(7, 12, 32, 0.025)");
+        neonWash.addColorStop(1, "rgba(238, 36, 151, 0.16)");
+        context.fillStyle = neonWash;
+        context.fillRect(0, 0, width, height);
+
+        const groundShade = context.createLinearGradient(0, height * 0.52, 0, height);
+        groundShade.addColorStop(0, "rgba(1, 4, 15, 0)");
+        groundShade.addColorStop(1, "rgba(1, 4, 14, 0.52)");
+        context.fillStyle = groundShade;
+        context.fillRect(0, 0, width, height);
+
+        drawText("MACH-GIRLS // URBAN NIGHT", width / 2, 26, 10, "950", "center", "rgba(235,241,255,.66)");
+        if (!combat) {
+          drawText("CITY COMBAT · READY", width / 2, height * 0.46, 22, "950", "center", "#ffffff");
+          drawText("START BATTLE · la escena está lista", width / 2, height * 0.46 + 29, 12, "700", "center", "rgba(239,242,255,.72)");
+        }
+        return;
+      }
+
       const gradient = context.createLinearGradient(0, 0, 0, height);
       gradient.addColorStop(0, "#050711");
       gradient.addColorStop(.46, "#0a1020");
@@ -942,6 +1000,18 @@
         context.lineTo(x - 10, y + 30);
         context.stroke();
       }
+      if (imageFor("scene.background")) {
+        // The uploaded city illustration already contains its own architecture.
+        // Keep motion streaks for energy, but do not draw a second fake skyline over it.
+        context.fillStyle = "rgba(101, 204, 255, .22)";
+        for (let i = 0; i < 5; i += 1) {
+          const x = ((i * 227 + drift * (0.12 + i * 0.035)) % (width + 180)) - 90;
+          const y = height * (0.18 + (i % 3) * 0.12);
+          context.fillRect(x, y, 24 + (i % 3) * 11, 2);
+        }
+        return;
+      }
+
       context.fillStyle = "rgba(12,24,42,.72)";
       const horizon = height * .53;
       for (let i = 0; i < 7; i += 1) {
