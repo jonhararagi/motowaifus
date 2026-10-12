@@ -43,7 +43,8 @@ These sprites are **not final approved Mach-Girls character designs**. The Biker
 - **Captures:** browser session reported screenshots captured for combat and victory. The connector result did not expose direct downloadable screenshot files/URLs, so this record links the reproducible exact-SHA preview rather than inventing screenshot links.
 - **Startup interaction:** the initial Start Battle control was disabled until the game's existing saved-deck/tutorial requirements were satisfied. The local tutorial flow was completed to start battle; it was not falsely recorded as a direct click on an initially disabled control. Temporary local deck/tutorial state was restored afterward.
 - **JavaScript parse check:** `PASS_STATIC` via V8 parse (`new Function`) before commit.
-- **Automated Node suite / GitHub Actions CI:** `NOT_RUN`. Browser visual evidence is separate from a suite/CI claim.
+- **Admin-data workflow:** [run #25](https://github.com/jonhararagi/motowaifus/actions/runs/38247437847) = `SUCCESS`; it ran only `node --test tests/admin_data_v2.test.mjs`, unrelated to combat presentation.
+- **Focused combat/presentation Node tests and full suite:** `NOT_RUN` by this task; no CI PASS is claimed for them. Browser visual evidence is separate from a suite/CI claim.
 
 ## Files changed in the code + asset commit
 

@@ -666,6 +666,7 @@ Live browser verification against the exact commit observed the combat UI/CSS an
 Status labels:
 - Real prototype assets connected: `VERIFIED ON PHASE32 BRANCH`.
 - Visual combat flow: `PASS_REAL — exact-SHA browser session`.
-- Node suite / GitHub Actions CI: `NOT_RUN`.
+- Admin-data CI: [run #25](https://github.com/jonhararagi/motowaifus/actions/runs/38247437847) = `SUCCESS`; it only ran `tests/admin_data_v2.test.mjs` and does not validate combat presentation.
+- Full combat/presentation Node suite: `NOT_RUN`; do not infer its status from unrelated CI.
 - Final anime/bōsōzoku rider + motorcycle art: `NOT APPROVED / OPEN WORK`.
 - `main` and `mach-girls-2.5d`: unchanged; the experiment has not been merged.
